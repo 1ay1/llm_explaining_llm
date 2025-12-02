@@ -1,0 +1,144 @@
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.vrb
+*.xdv
+
+# LaTeX build directories
+build/
+_minted*/
+pythontex-files-*/
+
+# Generated PDF (we'll use GitHub releases for the compiled PDF)
+# Uncomment below if you want to track the PDF in git
+# *.pdf
+
+# Backup files
+*.bak
+*.backup
+*~
+\#*\#
+.\#*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*.swn
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.temp
+
+# LaTeX specific temp files
+*.synctex
+*.pdfsync
+*.dvi
+*.ps
+
+# BibTeX/Biber files
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+
+# Nomenclature files
+*.nlo
+*.nls
+
+# Glossary files
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.ist
+
+# Makeindex files
+*.idx
+*.ilg
+*.ind
+
+# Latexmk files
+*.fdb_latexmk
+*.fls
+
+# TikZ external figures
+*.dpth
+*.md5
+*.auxlock
+*-figure*.pdf
+
+# hyperref files
+*.brf
+
+# minitoc files
+*.maf
+*.mlf
+*.mlt
+*.mtc*
+
+# todonotes
+*.tdo
+
+# Easy-Todo files
+*.lod
+
+# xindy
+*.xdy
+
+# WinEdt
+*.sav
+
+# endfloat
+*.fff
+*.lol
+*.ttt
+
+# Pythontex
+*.pytxcode
+pythontex-files-*/
+
+# TikZ & PGF
+*.tikz
+*-tikzDictionary
+
+# Compile log (optional - keep for debugging)
+compile.log

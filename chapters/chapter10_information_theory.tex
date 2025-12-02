@@ -1,0 +1,297 @@
+\chapter{Information Theory: Measuring Information and Uncertainty}
+
+\section{Introduction: What is Information?}
+
+Information theory, developed by Claude Shannon in 1948, provides the mathematical framework for quantifying information and uncertainty. It's fundamental to understanding LLMs.
+
+\begin{intuition}
+Information is surprise! When something unlikely happens, we gain more information than when something expected happens.
+
+If I tell you "the sun rose this morning"—not much information (you expected it). But "it snowed in July"—lots of information (unexpected)!
+\end{intuition}
+
+\begin{connection}
+Information theory is everywhere in LLMs:
+\begin{itemize}
+    \item \textbf{Cross-entropy loss} measures how well predictions match reality
+    \item \textbf{Perplexity} evaluates language model quality
+    \item \textbf{Entropy} quantifies uncertainty in probability distributions
+    \item \textbf{KL divergence} measures how different two distributions are
+\end{itemize}
+\end{connection}
+
+\section{Entropy: Measuring Uncertainty}
+
+\subsection{Definition}
+
+\begin{definition}{Shannon Entropy}{}
+For a discrete random variable $X$ with probability mass function $p(x)$:
+\[
+H(X) = -\sum_{x} p(x) \log_2 p(x) = \mathbb{E}[-\log_2 p(X)]
+\]
+
+Units: bits (if using $\log_2$) or nats (if using $\ln$)
+\end{definition}
+
+\begin{intuition}
+Entropy measures the average "surprise" or uncertainty. Higher entropy means more unpredictable!
+
+Think of it as: "How many yes/no questions do I need to ask (on average) to determine the outcome?"
+\end{intuition}
+
+\subsection{Examples}
+
+\begin{example}
+Fair coin: $p(\text{H}) = p(\text{T}) = 0.5$
+\[
+H = -0.5\log_2(0.5) - 0.5\log_2(0.5) = -0.5(-1) - 0.5(-1) = 1 \text{ bit}
+\]
+Maximum uncertainty for binary variable!
+\end{example}
+
+\begin{example}
+Biased coin: $p(\text{H}) = 0.9, p(\text{T}) = 0.1$
+\[
+H = -0.9\log_2(0.9) - 0.1\log_2(0.1) \approx 0.47 \text{ bits}
+\]
+Less uncertainty—we mostly expect heads.
+\end{example}
+
+\begin{example}
+Deterministic: $p(x_1) = 1$, all others are 0
+\[
+H = -1 \cdot \log_2(1) = 0
+\]
+No uncertainty at all!
+\end{example}
+
+\subsection{Properties of Entropy}
+
+\begin{theorem}{Entropy Properties}{}
+\begin{itemize}
+    \item $H(X) \geq 0$ (non-negative)
+    \item $H(X) = 0$ iff $X$ is deterministic
+    \item $H(X) \leq \log_2(n)$ where $n$ is number of outcomes
+    \item Maximum when all outcomes equally likely (uniform distribution)
+\end{itemize}
+\end{theorem}
+
+\section{Cross-Entropy: The Loss Function}
+
+\subsection{Definition}
+
+\begin{definition}{Cross-Entropy}{}
+For true distribution $p$ and predicted distribution $q$:
+\[
+H(p, q) = -\sum_x p(x) \log q(x) = \mathbb{E}_p[-\log q(X)]
+\]
+\end{definition}
+
+\begin{intuition}
+Cross-entropy measures: "If reality follows distribution $p$, but we think it follows $q$, how surprised will we be on average?"
+
+It's always at least as large as the true entropy: $H(p, q) \geq H(p)$
+\end{intuition}
+
+\subsection{Cross-Entropy Loss in Classification}
+
+For classification with true label $y$ and predicted probabilities $\hat{y}$:
+\[
+\mathcal{L} = -\sum_{i=1}^C y_i \log \hat{y}_i
+\]
+
+If $y$ is one-hot (only class $c$ is 1):
+\[
+\mathcal{L} = -\log \hat{y}_c
+\]
+
+\begin{connection}
+This is THE loss function for training LLMs!
+
+When predicting the next token:
+\begin{itemize}
+    \item $y$: true next token (one-hot vector)
+    \item $\hat{y}$: model's predicted probability distribution
+    \item Loss: $-\log p(\text{correct token})$
+\end{itemize}
+
+Minimizing cross-entropy = maximizing likelihood!
+\end{connection}
+
+\begin{example}
+Model predicts next word with probabilities:
+\[
+\hat{y} = [\text{cat: } 0.6, \text{ dog: } 0.3, \text{ bird: } 0.1]
+\]
+
+True word is "dog". Loss:
+\[
+\mathcal{L} = -\log(0.3) \approx 1.20
+\]
+
+If model had predicted "dog" with 0.9 probability:
+\[
+\mathcal{L} = -\log(0.9) \approx 0.11
+\]
+Much better!
+\end{example}
+
+\section{KL Divergence: Comparing Distributions}
+
+\subsection{Definition}
+
+\begin{definition}{Kullback-Leibler Divergence}{}
+\[
+D_{KL}(p \| q) = \sum_x p(x) \log \frac{p(x)}{q(x)}
+\]
+\end{definition}
+
+\begin{intuition}
+KL divergence measures how much information is lost when we approximate $p$ with $q$.
+
+Think of it as: "How different are these two distributions?"
+\end{intuition}
+
+\subsection{Properties}
+
+\begin{theorem}{KL Divergence Properties}{}
+\begin{itemize}
+    \item $D_{KL}(p \| q) \geq 0$ (non-negative)
+    \item $D_{KL}(p \| q) = 0$ iff $p = q$ (equal distributions)
+    \item NOT symmetric: $D_{KL}(p \| q) \neq D_{KL}(q \| p)$
+    \item NOT a true metric (doesn't satisfy triangle inequality)
+\end{itemize}
+\end{theorem}
+
+\subsection{Relationship to Cross-Entropy}
+
+\[
+D_{KL}(p \| q) = H(p, q) - H(p)
+\]
+
+\begin{intuition}
+KL divergence = Cross-entropy - Entropy
+
+The "extra" bits needed when using $q$ instead of the optimal code for $p$!
+\end{intuition}
+
+\begin{connection}
+In machine learning:
+\begin{itemize}
+    \item Minimizing cross-entropy = minimizing KL divergence (since $H(p)$ is constant)
+    \item \textbf{Variational inference} uses KL divergence
+    \item \textbf{Policy gradient methods} (RL) use KL to keep updates stable
+    \item \textbf{Knowledge distillation} minimizes KL between teacher and student
+\end{itemize}
+\end{connection}
+
+\section{Perplexity: Evaluating Language Models}
+
+\subsection{Definition}
+
+\begin{definition}{Perplexity}{}
+For a language model with probability $p$ on test sequence $w_1, \ldots, w_N$:
+\[
+\text{Perplexity} = \exp\left(-\frac{1}{N}\sum_{i=1}^N \log p(w_i | w_1, \ldots, w_{i-1})\right)
+\]
+
+Equivalently: $\text{Perplexity} = 2^{H}$ where $H$ is the cross-entropy.
+\end{definition}
+
+\begin{intuition}
+Perplexity is roughly: "How many choices does the model effectively have at each step?"
+
+\begin{itemize}
+    \item Perplexity of 1: Model is certain (always correct)
+    \item Perplexity of 100: Model is as uncertain as random choice from 100 options
+    \item Lower is better!
+\end{itemize}
+\end{intuition}
+
+\begin{example}
+If average cross-entropy per token is 3 bits:
+\[
+\text{Perplexity} = 2^3 = 8
+\]
+
+The model is as uncertain as picking randomly from 8 equally likely options.
+\end{example}
+
+\begin{connection}
+Standard benchmarks:
+\begin{itemize}
+    \item GPT-2 on WikiText-103: perplexity $\approx$ 20
+    \item GPT-3: perplexity $\approx$ 15
+    \item Human performance: perplexity $\approx$ 12
+\end{itemize}
+
+Lower perplexity = better language model!
+\end{connection}
+
+\section{Mutual Information}
+
+\subsection{Definition}
+
+\begin{definition}{Mutual Information}{}
+\[
+I(X; Y) = \sum_x \sum_y p(x,y) \log \frac{p(x,y)}{p(x)p(y)}
+\]
+
+Equivalently: $I(X; Y) = H(X) - H(X|Y) = H(Y) - H(Y|X)$
+\end{definition}
+
+\begin{intuition}
+Mutual information measures: "How much does knowing $Y$ reduce uncertainty about $X$?"
+
+\begin{itemize}
+    \item $I(X; Y) = 0$: $X$ and $Y$ are independent
+    \item $I(X; Y) = H(X)$: $Y$ completely determines $X$
+\end{itemize}
+\end{intuition}
+
+\section{Information Theory in LLM Training}
+
+\subsection{Maximum Likelihood = Minimum Cross-Entropy}
+
+Training objective:
+\[
+\max_\theta \sum_{i=1}^N \log p_\theta(w_i | w_{<i})
+\]
+
+This is equivalent to:
+\[
+\min_\theta H(p_{\text{data}}, p_\theta)
+\]
+
+\begin{connection}
+We're minimizing the KL divergence between the true data distribution and our model!
+\end{connection}
+
+\subsection{Temperature and Entropy}
+
+When sampling from LLMs, we use temperature $T$:
+\[
+p_i = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}
+\]
+
+\begin{itemize}
+    \item $T \to 0$: Low entropy (deterministic, boring)
+    \item $T = 1$: Normal entropy
+    \item $T > 1$: High entropy (creative, random)
+\end{itemize}
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Entropy} measures uncertainty/surprise in a distribution
+    \item \textbf{Cross-entropy} is the loss function for classification and language modeling
+    \item \textbf{KL divergence} measures difference between distributions
+    \item \textbf{Perplexity} evaluates language model quality
+    \item \textbf{Mutual information} measures dependency between variables
+    \item Information theory provides the theoretical foundation for training LLMs
+    \item Minimizing cross-entropy = maximizing likelihood = matching data distribution
+\end{itemize}
+
+\begin{connection}
+Every time an LLM trains, it's doing information theory! The loss function, evaluation metrics, and training dynamics all have deep connections to Shannon's framework. Understanding information theory helps you understand why certain loss functions work, how to evaluate models, and what it means for a model to "learn" the data distribution.
+\end{connection}

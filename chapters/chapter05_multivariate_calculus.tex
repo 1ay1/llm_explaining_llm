@@ -1,0 +1,519 @@
+\chapter{Multivariate Calculus: Functions of Many Variables}
+
+\section{Introduction: The Real World is High-Dimensional}
+
+In single-variable calculus, we dealt with functions like $f(x) = x^2$. But neural networks have millions or billions of parameters! A GPT-3 sized model has 175 billion weights—that's a function $f: \R^{175\text{B}} \to \R$ mapping weights to loss.
+
+\begin{intuition}
+Multivariate calculus extends our calculus toolkit to functions of many variables. Instead of asking "how does $f$ change when $x$ changes?", we ask "how does $f$ change when we move in any direction in high-dimensional space?"
+
+This is the mathematics that makes training neural networks possible!
+\end{intuition}
+
+\begin{connection}
+Every concept in this chapter directly relates to training LLMs:
+\begin{itemize}
+    \item \textbf{Partial derivatives} → gradients with respect to individual weights
+    \item \textbf{Gradient vectors} → the direction of steepest descent
+    \item \textbf{The Hessian matrix} → second-order optimization methods
+    \item \textbf{The chain rule} → backpropagation through layers
+\end{itemize}
+\end{connection}
+
+\section{Functions of Multiple Variables}
+
+\subsection{Basic Definitions}
+
+A function $f: \R^n \to \R$ takes $n$ inputs and produces one output:
+\[
+z = f(x_1, x_2, \ldots, x_n)
+\]
+
+Or in vector notation: $z = f(\vect{x})$ where $\vect{x} \in \R^n$.
+
+\begin{example}
+Some multivariate functions:
+\begin{itemize}
+    \item $f(x, y) = x^2 + y^2$ (a paraboloid)
+    \item $g(x, y) = \sin(x) \cos(y)$
+    \item $h(x, y, z) = x^2 + 2xy + y^2 + z^2$
+    \item $\mathcal{L}(\vect{w}) = \frac{1}{n}\sum_{i=1}^n (y_i - \vect{w}\trans\vect{x}_i)^2$ (least squares loss)
+\end{itemize}
+\end{example}
+
+\subsection{Vector-Valued Functions}
+
+A function $\vect{f}: \R^n \to \R^m$ has multiple outputs:
+\[
+\vect{f}(\vect{x}) = \begin{bmatrix} f_1(\vect{x}) \\ f_2(\vect{x}) \\ \vdots \\ f_m(\vect{x}) \end{bmatrix}
+\]
+
+\begin{connection}
+Neural network layers are vector-valued functions! A layer with $d_{\text{in}}$ inputs and $d_{\text{out}}$ outputs is:
+\[
+\vect{h}: \R^{d_{\text{in}}} \to \R^{d_{\text{out}}}
+\]
+\[
+\vect{h}(\vect{x}) = \sigma(\mat{W}\vect{x} + \vect{b})
+\]
+\end{connection}
+
+\section{Partial Derivatives}
+
+\subsection{Definition}
+
+A \vocab{partial derivative} measures how a function changes when we vary just one variable, holding all others constant.
+
+\begin{definition}{Partial Derivative}{}
+The partial derivative of $f$ with respect to $x_i$ is:
+\[
+\frac{\partial f}{\partial x_i} = \lim_{h \to 0} \frac{f(x_1, \ldots, x_i + h, \ldots, x_n) - f(x_1, \ldots, x_i, \ldots, x_n)}{h}
+\]
+
+We treat all other variables as constants and differentiate with respect to $x_i$ only.
+\end{definition}
+
+\begin{example}
+For $f(x, y) = x^2y + 3xy^2 + 5$:
+
+Partial derivative with respect to $x$ (treat $y$ as constant):
+\[
+\frac{\partial f}{\partial x} = 2xy + 3y^2
+\]
+
+Partial derivative with respect to $y$ (treat $x$ as constant):
+\[
+\frac{\partial f}{\partial y} = x^2 + 6xy
+\]
+\end{example}
+
+\begin{intuition}
+Imagine a mountain. The partial derivative $\frac{\partial f}{\partial x}$ tells you the slope if you walk purely in the $x$ direction (east-west), while $\frac{\partial f}{\partial y}$ tells you the slope in the $y$ direction (north-south).
+\end{intuition}
+
+\subsection{Computing Partial Derivatives}
+
+Use the same rules as single-variable calculus, treating other variables as constants!
+
+\begin{example}
+For $f(x, y, z) = x^2yz + e^{xy} + \sin(xz)$:
+
+\begin{align*}
+\frac{\partial f}{\partial x} &= 2xyz + ye^{xy} + z\cos(xz) \\
+\frac{\partial f}{\partial y} &= x^2z + xe^{xy} \\
+\frac{\partial f}{\partial z} &= x^2y + x\cos(xz)
+\end{align*}
+\end{example}
+
+\section{The Gradient: Vector of All Partial Derivatives}
+
+\subsection{Definition}
+
+The \vocab{gradient} collects all partial derivatives into a vector.
+
+\begin{definition}{Gradient}{}
+For $f: \R^n \to \R$, the gradient is:
+\[
+\nabla f(\vect{x}) = \begin{bmatrix} \frac{\partial f}{\partial x_1} \\ \frac{\partial f}{\partial x_2} \\ \vdots \\ \frac{\partial f}{\partial x_n} \end{bmatrix} \in \R^n
+\]
+
+Alternative notations: $\nabla_{\vect{x}} f$, $\frac{\partial f}{\partial \vect{x}}$, $\text{grad } f$
+\end{definition}
+
+\begin{example}
+For $f(x, y) = x^2 + 2xy + y^2$:
+\[
+\nabla f = \begin{bmatrix} \frac{\partial f}{\partial x} \\ \frac{\partial f}{\partial y} \end{bmatrix} = \begin{bmatrix} 2x + 2y \\ 2x + 2y \end{bmatrix}
+\]
+
+At point $(1, 1)$: $\nabla f(1, 1) = \begin{bmatrix} 4 \\ 4 \end{bmatrix}$
+\end{example}
+
+\subsection{Geometric Interpretation}
+
+\begin{theorem}{Gradient is Steepest Ascent}{}
+The gradient $\nabla f(\vect{x})$ points in the direction of steepest increase of $f$ at $\vect{x}$.
+
+Its magnitude $\norm{\nabla f(\vect{x})}$ is the rate of increase in that direction.
+\end{theorem}
+
+\begin{intuition}
+If you're on a mountain and want to climb fastest, walk in the direction of $\nabla f$. If you want to descend fastest (minimize $f$), walk in the direction of $-\nabla f$.
+
+This is exactly what gradient descent does!
+\end{intuition}
+
+\begin{connection}
+\textbf{Gradient Descent Algorithm:}
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \eta \nabla_{\vect{w}} \mathcal{L}(\vect{w}^{(t)})
+\]
+
+We update weights by moving in the direction opposite to the gradient (steepest descent) with step size $\eta$ (learning rate).
+
+This is how ALL neural networks learn!
+\end{connection}
+
+\section{Directional Derivatives}
+
+\subsection{Definition}
+
+The \vocab{directional derivative} measures the rate of change in any direction $\vect{v}$.
+
+\begin{definition}{Directional Derivative}{}
+The directional derivative of $f$ at $\vect{x}$ in direction $\vect{v}$ is:
+\[
+D_{\vect{v}}f(\vect{x}) = \lim_{h \to 0} \frac{f(\vect{x} + h\vect{v}) - f(\vect{x})}{h}
+\]
+
+If $\vect{v}$ is a unit vector ($\norm{\vect{v}} = 1$):
+\[
+D_{\vect{v}}f(\vect{x}) = \nabla f(\vect{x}) \cdot \vect{v}
+\]
+\end{definition}
+
+\begin{intuition}
+The directional derivative is the dot product of the gradient with the direction. This means:
+\begin{itemize}
+    \item Maximum when $\vect{v}$ points in direction of $\nabla f$ (steepest ascent)
+    \item Minimum when $\vect{v}$ points opposite to $\nabla f$ (steepest descent)
+    \item Zero when $\vect{v}$ is perpendicular to $\nabla f$ (level curve)
+\end{itemize}
+\end{intuition}
+
+\begin{example}
+For $f(x, y) = x^2 + y^2$, we have $\nabla f = \begin{bmatrix} 2x \\ 2y \end{bmatrix}$.
+
+At $(1, 0)$, the gradient is $\begin{bmatrix} 2 \\ 0 \end{bmatrix}$.
+
+Directional derivative in direction $\vect{v} = \begin{bmatrix} 1/\sqrt{2} \\ 1/\sqrt{2} \end{bmatrix}$:
+\[
+D_{\vect{v}}f(1, 0) = \begin{bmatrix} 2 \\ 0 \end{bmatrix} \cdot \begin{bmatrix} 1/\sqrt{2} \\ 1/\sqrt{2} \end{bmatrix} = \frac{2}{\sqrt{2}} = \sqrt{2}
+\]
+\end{example}
+
+\section{The Chain Rule for Multivariable Functions}
+
+This is the heart of backpropagation!
+
+\subsection{Chain Rule: Scalar Output}
+
+If $z = f(\vect{y})$ and $\vect{y} = \vect{g}(\vect{x})$, then:
+
+\begin{theorem}{Multivariate Chain Rule}{}
+\[
+\frac{\partial z}{\partial x_i} = \sum_{j=1}^{m} \frac{\partial z}{\partial y_j} \frac{\partial y_j}{\partial x_i}
+\]
+
+In matrix form:
+\[
+\frac{\partial z}{\partial \vect{x}} = \left(\frac{\partial \vect{y}}{\partial \vect{x}}\right)\trans \frac{\partial z}{\partial \vect{y}}
+\]
+\end{theorem}
+
+\begin{example}
+Let $z = x^2 + y^2$ where $x = r\cos(\theta)$ and $y = r\sin(\theta)$.
+
+Find $\frac{\partial z}{\partial r}$:
+\[
+\frac{\partial z}{\partial r} = \frac{\partial z}{\partial x}\frac{\partial x}{\partial r} + \frac{\partial z}{\partial y}\frac{\partial y}{\partial r}
+\]
+\[
+= (2x)(\cos\theta) + (2y)(\sin\theta)
+\]
+\[
+= 2r\cos^2\theta + 2r\sin^2\theta = 2r
+\]
+\end{example}
+
+\begin{connection}
+\textbf{This is backpropagation!}
+
+In a neural network: $\text{Input } \vect{x} \to \text{Hidden } \vect{h} \to \text{Output } y \to \text{Loss } \mathcal{L}$
+
+To compute $\frac{\partial \mathcal{L}}{\partial \vect{x}}$:
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{x}} = \left(\frac{\partial \vect{h}}{\partial \vect{x}}\right)\trans \left(\frac{\partial y}{\partial \vect{h}}\right)\trans \frac{\partial \mathcal{L}}{\partial y}
+\]
+
+We compute gradients backwards through the network, one layer at a time!
+\end{connection}
+
+\section{The Jacobian Matrix}
+
+\subsection{Definition}
+
+For vector-valued functions, we need a matrix of derivatives.
+
+\begin{definition}{Jacobian Matrix}{}
+For $\vect{f}: \R^n \to \R^m$, the Jacobian is:
+\[
+\mat{J}_{\vect{f}}(\vect{x}) = \frac{\partial \vect{f}}{\partial \vect{x}} = \begin{bmatrix}
+\frac{\partial f_1}{\partial x_1} & \frac{\partial f_1}{\partial x_2} & \cdots & \frac{\partial f_1}{\partial x_n} \\
+\frac{\partial f_2}{\partial x_1} & \frac{\partial f_2}{\partial x_2} & \cdots & \frac{\partial f_2}{\partial x_n} \\
+\vdots & \vdots & \ddots & \vdots \\
+\frac{\partial f_m}{\partial x_1} & \frac{\partial f_m}{\partial x_2} & \cdots & \frac{\partial f_m}{\partial x_n}
+\end{bmatrix} \in \R^{m \times n}
+\]
+
+Row $i$ is the gradient of $f_i$: $\nabla f_i\trans$
+\end{definition}
+
+\begin{intuition}
+The Jacobian tells you how each output changes with respect to each input. It's the multivariable generalization of the derivative!
+\end{intuition}
+
+\begin{example}
+For $\vect{f}(x, y) = \begin{bmatrix} x^2 + y \\ xy \\ x + y^2 \end{bmatrix}$:
+
+\[
+\mat{J} = \begin{bmatrix}
+2x & 1 \\
+y & x \\
+1 & 2y
+\end{bmatrix}
+\]
+\end{example}
+
+\subsection{Chain Rule with Jacobians}
+
+If $\vect{z} = \vect{f}(\vect{y})$ and $\vect{y} = \vect{g}(\vect{x})$, then:
+\[
+\frac{\partial \vect{z}}{\partial \vect{x}} = \frac{\partial \vect{z}}{\partial \vect{y}} \frac{\partial \vect{y}}{\partial \vect{x}}
+\]
+
+That is: $\mat{J}_{\vect{f} \circ \vect{g}} = \mat{J}_{\vect{f}} \cdot \mat{J}_{\vect{g}}$
+
+\begin{connection}
+In a deep neural network with $L$ layers:
+\[
+\vect{x} \xrightarrow{\vect{f}_1} \vect{h}_1 \xrightarrow{\vect{f}_2} \vect{h}_2 \xrightarrow{\vect{f}_3} \cdots \xrightarrow{\vect{f}_L} \vect{y}
+\]
+
+The overall Jacobian is:
+\[
+\frac{\partial \vect{y}}{\partial \vect{x}} = \mat{J}_{f_L} \cdot \mat{J}_{f_{L-1}} \cdots \mat{J}_{f_2} \cdot \mat{J}_{f_1}
+\]
+
+This product can cause vanishing/exploding gradients if Jacobians are too small/large!
+\end{connection}
+
+\section{The Hessian Matrix: Second Derivatives}
+
+\subsection{Definition}
+
+The \vocab{Hessian} is the matrix of all second partial derivatives.
+
+\begin{definition}{Hessian Matrix}{}
+For $f: \R^n \to \R$, the Hessian is:
+\[
+\mat{H}_f(\vect{x}) = \begin{bmatrix}
+\frac{\partial^2 f}{\partial x_1^2} & \frac{\partial^2 f}{\partial x_1 \partial x_2} & \cdots & \frac{\partial^2 f}{\partial x_1 \partial x_n} \\
+\frac{\partial^2 f}{\partial x_2 \partial x_1} & \frac{\partial^2 f}{\partial x_2^2} & \cdots & \frac{\partial^2 f}{\partial x_2 \partial x_n} \\
+\vdots & \vdots & \ddots & \vdots \\
+\frac{\partial^2 f}{\partial x_n \partial x_1} & \frac{\partial^2 f}{\partial x_n \partial x_2} & \cdots & \frac{\partial^2 f}{\partial x_n^2}
+\end{bmatrix}
+\]
+
+Element $(i,j)$ is: $H_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$
+\end{definition}
+
+\begin{theorem}{Clairaut's Theorem}{}
+If second partial derivatives are continuous, then:
+\[
+\frac{\partial^2 f}{\partial x_i \partial x_j} = \frac{\partial^2 f}{\partial x_j \partial x_i}
+\]
+
+So the Hessian is symmetric!
+\end{theorem}
+
+\begin{example}
+For $f(x, y) = x^3 + xy^2 + y^3$:
+
+\begin{align*}
+\frac{\partial f}{\partial x} &= 3x^2 + y^2, \quad \frac{\partial f}{\partial y} = 2xy + 3y^2 \\
+\frac{\partial^2 f}{\partial x^2} &= 6x, \quad \frac{\partial^2 f}{\partial y^2} = 2x + 6y \\
+\frac{\partial^2 f}{\partial x \partial y} &= 2y
+\end{align*}
+
+\[
+\mat{H} = \begin{bmatrix} 6x & 2y \\ 2y & 2x + 6y \end{bmatrix}
+\]
+\end{example}
+
+\subsection{Interpreting the Hessian: Curvature}
+
+The Hessian measures curvature in all directions!
+
+\begin{theorem}{Second-Order Approximation}{}
+Near $\vect{x}_0$, we can approximate:
+\[
+f(\vect{x}) \approx f(\vect{x}_0) + \nabla f(\vect{x}_0)\trans(\vect{x} - \vect{x}_0) + \frac{1}{2}(\vect{x} - \vect{x}_0)\trans \mat{H}(\vect{x}_0)(\vect{x} - \vect{x}_0)
+\]
+
+This is the second-order Taylor expansion!
+\end{theorem}
+
+\begin{intuition}
+\begin{itemize}
+    \item First-order term: $\nabla f$ tells us the slope (linear approximation)
+    \item Second-order term: $\mat{H}$ tells us the curvature (quadratic approximation)
+\end{itemize}
+
+Think of the Hessian as describing the "bowl shape" around a point.
+\end{intuition}
+
+\subsection{Optimality Conditions}
+
+\begin{theorem}{Second-Order Optimality Conditions}{}
+If $\nabla f(\vect{x}^*) = \vect{0}$ (critical point), then:
+\begin{itemize}
+    \item If $\mat{H}(\vect{x}^*)$ is positive definite: local minimum
+    \item If $\mat{H}(\vect{x}^*)$ is negative definite: local maximum
+    \item If $\mat{H}(\vect{x}^*)$ has both positive and negative eigenvalues: saddle point
+    \item If $\mat{H}(\vect{x}^*)$ is positive semi-definite: test inconclusive
+\end{itemize}
+\end{theorem}
+
+\begin{connection}
+In neural network optimization:
+\begin{itemize}
+    \item \textbf{Saddle points} are much more common than local minima in high dimensions!
+    \item \textbf{Newton's method} uses the Hessian: $\vect{x}^{(t+1)} = \vect{x}^{(t)} - \mat{H}^{-1}\nabla f$
+    \item \textbf{Second-order methods} (L-BFGS, natural gradient) approximate the Hessian
+    \item Computing full Hessian is $O(n^2)$ memory---impractical for large models!
+\end{itemize}
+\end{connection}
+
+\section{Constrained Optimization: Lagrange Multipliers}
+
+\subsection{The Problem}
+
+Optimize $f(\vect{x})$ subject to constraint $g(\vect{x}) = 0$.
+
+\begin{example}
+Maximize $f(x, y) = xy$ subject to $x + y = 10$.
+
+Or: Minimize $f(\vect{x}) = \norm{\vect{x} - \vect{x}_0}^2$ subject to $\vect{a}\trans\vect{x} = b$.
+\end{example}
+
+\subsection{Lagrange Multipliers}
+
+\begin{theorem}{Method of Lagrange Multipliers}{}
+To optimize $f(\vect{x})$ subject to $g(\vect{x}) = 0$, define the Lagrangian:
+\[
+\mathcal{L}(\vect{x}, \lambda) = f(\vect{x}) - \lambda g(\vect{x})
+\]
+
+At an optimum: $\nabla_{\vect{x}} \mathcal{L} = \vect{0}$ and $\frac{\partial \mathcal{L}}{\partial \lambda} = 0$
+
+This gives: $\nabla f(\vect{x}^*) = \lambda \nabla g(\vect{x}^*)$
+\end{theorem}
+
+\begin{intuition}
+At the optimum, the gradients of $f$ and $g$ must be parallel! You can't improve $f$ while staying on the constraint surface $g = 0$.
+\end{intuition}
+
+\begin{example}
+Maximize $f(x, y) = xy$ subject to $x + y = 10$:
+
+Lagrangian: $\mathcal{L}(x, y, \lambda) = xy - \lambda(x + y - 10)$
+
+\begin{align*}
+\frac{\partial \mathcal{L}}{\partial x} &= y - \lambda = 0 \implies y = \lambda \\
+\frac{\partial \mathcal{L}}{\partial y} &= x - \lambda = 0 \implies x = \lambda \\
+\frac{\partial \mathcal{L}}{\partial \lambda} &= -(x + y - 10) = 0
+\end{align*}
+
+From first two: $x = y$. From third: $2x = 10 \implies x = y = 5$.
+
+Maximum value: $f(5, 5) = 25$.
+\end{example}
+
+\begin{connection}
+Lagrange multipliers appear in:
+\begin{itemize}
+    \item \textbf{Support Vector Machines}: Maximizing margin with constraints
+    \item \textbf{Constrained neural network training}: Adding regularization as constraints
+    \item \textbf{KKT conditions}: Generalization for inequality constraints
+    \item \textbf{Dual problems}: Alternative formulations of optimization problems
+\end{itemize}
+\end{connection}
+
+\section{Vector Calculus Identities}
+
+Some useful identities for neural networks:
+
+\subsection{Gradient of Common Functions}
+
+\begin{align*}
+\nabla_{\vect{x}}(\vect{a}\trans\vect{x}) &= \vect{a} \\
+\nabla_{\vect{x}}(\vect{x}\trans\mat{A}\vect{x}) &= (\mat{A} + \mat{A}\trans)\vect{x} \\
+\nabla_{\vect{x}}(\norm{\vect{x}}^2) &= 2\vect{x} \\
+\nabla_{\mat{W}}(\vect{a}\trans\mat{W}\vect{b}) &= \vect{a}\vect{b}\trans \\
+\nabla_{\mat{W}}(\text{tr}(\mat{W}\mat{A})) &= \mat{A}\trans
+\end{align*}
+
+\subsection{Chain Rule Patterns}
+
+\begin{align*}
+\nabla_{\vect{x}} f(\mat{A}\vect{x}) &= \mat{A}\trans \nabla_{\vect{y}} f(\vect{y}) \quad \text{where } \vect{y} = \mat{A}\vect{x} \\
+\nabla_{\vect{x}} f(g(\vect{x})) &= \frac{df}{dg} \nabla_{\vect{x}} g(\vect{x}) \\
+\nabla_{\mat{W}} f(\mat{W}\vect{x}) &= \nabla_{\vect{y}} f(\vect{y}) \cdot \vect{x}\trans \quad \text{where } \vect{y} = \mat{W}\vect{x}
+\end{align*}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Computing Gradients}
+
+For $f(x, y, z) = x^2y + 2xz + yz^2$, compute:
+\begin{enumerate}[label=(\alph*)]
+    \item All partial derivatives
+    \item The gradient $\nabla f$
+    \item The gradient at point $(1, 2, 3)$
+\end{enumerate}
+
+\subsection{Problem 2: Hessian}
+
+For $f(x, y) = x^4 + y^4 - 2x^2 - 2y^2 + 4xy$:
+\begin{enumerate}[label=(\alph*)]
+    \item Find all critical points
+    \item Compute the Hessian
+    \item Classify each critical point as min/max/saddle
+\end{enumerate}
+
+\subsection{Problem 3: Chain Rule}
+
+A neural network layer computes: $\vect{z} = \mat{W}\vect{x} + \vect{b}$, then $\vect{a} = \text{ReLU}(\vect{z})$, then $L = \norm{\vect{a} - \vect{y}}^2$.
+
+Use the chain rule to derive:
+\begin{enumerate}[label=(\alph*)]
+    \item $\frac{\partial L}{\partial \vect{a}}$
+    \item $\frac{\partial L}{\partial \vect{z}}$
+    \item $\frac{\partial L}{\partial \mat{W}}$
+\end{enumerate}
+
+\subsection{Problem 4: Lagrange Multipliers}
+
+Minimize $f(x, y) = x^2 + y^2$ subject to $2x + 3y = 6$.
+
+\subsection{Problem 5: Jacobian}
+
+Compute the Jacobian of $\vect{f}(x, y) = \begin{bmatrix} e^x \cos(y) \\ e^x \sin(y) \end{bmatrix}$ at point $(0, \pi/4)$.
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Partial derivatives} measure change in one variable at a time
+    \item \textbf{The gradient} $\nabla f$ points in the direction of steepest ascent
+    \item \textbf{Gradient descent} uses $-\nabla f$ to minimize functions
+    \item \textbf{The chain rule} enables backpropagation through layers
+    \item \textbf{The Jacobian} is the derivative of vector-valued functions
+    \item \textbf{The Hessian} captures second-order information (curvature)
+    \item \textbf{Lagrange multipliers} handle constrained optimization
+    \item Understanding these tools is essential for implementing and debugging neural networks
+\end{itemize}
+
+\begin{connection}
+You now understand the mathematics behind backpropagation and gradient descent! Every time you train a neural network, you're computing gradients using the chain rule, then updating parameters by moving opposite to the gradient. In the next chapter, we'll explore optimization algorithms that make this process faster and more stable. The journey from math to working LLMs continues!
+\end{connection}

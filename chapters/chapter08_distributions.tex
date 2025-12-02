@@ -1,0 +1,401 @@
+\chapter{Probability Distributions: The Language of Uncertainty}
+
+\section{Introduction: Modeling Randomness}
+
+In machine learning, uncertainty is everywhere. Will the model correctly predict the next word? How confident should we be? Probability distributions answer these questions.
+
+\begin{intuition}
+A probability distribution describes how likely different outcomes are. In LLMs:
+\begin{itemize}
+    \item The output is a probability distribution over vocabulary
+    \item Dropout introduces randomness during training
+    \item We sample from distributions to generate diverse text
+    \item Uncertainty quantification helps us know when to trust the model
+\end{itemize}
+\end{intuition}
+
+\begin{connection}
+Understanding distributions is essential for:
+\begin{itemize}
+    \item Cross-entropy loss (comparing distributions)
+    \item Softmax outputs (categorical distributions)
+    \item Sampling strategies (temperature, top-k, nucleus sampling)
+    \item Bayesian approaches to neural networks
+\end{itemize}
+\end{connection}
+
+\section{Discrete Distributions}
+
+\subsection{Bernoulli Distribution}
+
+The simplest distribution—a single coin flip.
+
+\begin{definition}{Bernoulli Distribution}{}
+A random variable $X \sim \text{Bernoulli}(p)$ takes value 1 with probability $p$ and 0 with probability $1-p$:
+\[
+P(X = 1) = p, \quad P(X = 0) = 1-p
+\]
+
+PMF: $P(X = x) = p^x(1-p)^{1-x}$ for $x \in \{0,1\}$
+
+Mean: $\mathbb{E}[X] = p$
+
+Variance: $\text{Var}(X) = p(1-p)$
+\end{definition}
+
+\begin{connection}
+Bernoulli distribution models:
+\begin{itemize}
+    \item Binary classification outputs
+    \item Dropout (each neuron kept with probability $p$)
+    \item Binary features
+\end{itemize}
+\end{connection}
+
+\subsection{Categorical Distribution}
+
+Generalizes Bernoulli to multiple outcomes.
+
+\begin{definition}{Categorical Distribution}{}
+A random variable $X \sim \text{Categorical}(\vect{p})$ where $\vect{p} = [p_1, \ldots, p_K]$ with $\sum_i p_i = 1$:
+\[
+P(X = i) = p_i
+\]
+\end{definition}
+
+\begin{connection}
+\textbf{This is what LLMs output!}
+
+After the softmax layer, we get a categorical distribution over the vocabulary:
+\[
+P(\text{next word} = w_i | \text{context}) = \frac{\exp(z_i)}{\sum_j \exp(z_j)}
+\]
+
+This is exactly a categorical distribution!
+\end{connection}
+
+\subsection{Multinomial Distribution}
+
+Multiple independent categorical trials.
+
+\begin{definition}{Multinomial Distribution}{}
+For $n$ trials with $K$ possible outcomes, counts $(X_1, \ldots, X_K) \sim \text{Multinomial}(n, \vect{p})$:
+\[
+P(X_1 = x_1, \ldots, X_K = x_K) = \frac{n!}{x_1! \cdots x_K!} p_1^{x_1} \cdots p_K^{x_K}
+\]
+where $\sum_i x_i = n$.
+\end{definition}
+
+\section{Continuous Distributions}
+
+\subsection{Uniform Distribution}
+
+All values in an interval equally likely.
+
+\begin{definition}{Uniform Distribution}{}
+$X \sim \text{Uniform}(a, b)$ has PDF:
+\[
+f(x) = \begin{cases} \frac{1}{b-a} & a \leq x \leq b \\ 0 & \text{otherwise} \end{cases}
+\]
+
+Mean: $\mathbb{E}[X] = \frac{a+b}{2}$
+
+Variance: $\text{Var}(X) = \frac{(b-a)^2}{12}$
+\end{definition}
+
+\begin{connection}
+Used for:
+\begin{itemize}
+    \item Random initialization (uniform on $[-r, r]$)
+    \item Sampling in Monte Carlo methods
+    \item Data augmentation
+\end{itemize}
+\end{connection}
+
+\subsection{Normal (Gaussian) Distribution}
+
+The most important distribution in all of statistics!
+
+\begin{definition}{Normal Distribution}{}
+$X \sim \mathcal{N}(\mu, \sigma^2)$ has PDF:
+\[
+f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)
+\]
+
+Mean: $\mathbb{E}[X] = \mu$
+
+Variance: $\text{Var}(X) = \sigma^2$
+\end{definition}
+
+\begin{theorem}{Central Limit Theorem}{}
+The sum of many independent random variables (under mild conditions) approaches a normal distribution, regardless of their individual distributions!
+\[
+\frac{\sum_{i=1}^n X_i - n\mu}{\sigma\sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1)
+\]
+\end{theorem}
+
+\begin{intuition}
+This is why the normal distribution appears everywhere! Any process that involves adding many small effects will be approximately normal.
+\end{intuition}
+
+\subsection{Multivariate Normal Distribution}
+
+The high-dimensional Gaussian.
+
+\begin{definition}{Multivariate Normal}{}
+$\vect{X} \sim \mathcal{N}(\vect{\mu}, \mat{\Sigma})$ where $\vect{\mu} \in \mathbb{R}^d$ and $\mat{\Sigma} \in \mathbb{R}^{d \times d}$ is positive definite:
+\[
+f(\vect{x}) = \frac{1}{(2\pi)^{d/2}|\mat{\Sigma}|^{1/2}} \exp\left(-\frac{1}{2}(\vect{x}-\vect{\mu})^\top\mat{\Sigma}^{-1}(\vect{x}-\vect{\mu})\right)
+\]
+\end{definition}
+
+\begin{connection}
+Multivariate Gaussians in deep learning:
+\begin{itemize}
+    \item \textbf{Weight initialization}: Xavier/He initialization uses Gaussians
+    \item \textbf{Gaussian Processes}: Prior over functions
+    \item \textbf{Variational inference}: Approximate posteriors
+    \item \textbf{Noise modeling}: Additive Gaussian noise
+\end{itemize}
+\end{connection}
+
+\subsection{Exponential Distribution}
+
+Models waiting times.
+
+\begin{definition}{Exponential Distribution}{}
+$X \sim \text{Exp}(\lambda)$ has PDF:
+\[
+f(x) = \lambda e^{-\lambda x}, \quad x \geq 0
+\]
+
+Mean: $\mathbb{E}[X] = \frac{1}{\lambda}$
+
+Variance: $\text{Var}(X) = \frac{1}{\lambda^2}$
+\end{definition}
+
+\section{The Softmax Distribution}
+
+\subsection{From Logits to Probabilities}
+
+The softmax function converts arbitrary scores (logits) to a probability distribution.
+
+\begin{definition}{Softmax Function}{}
+Given logits $\vect{z} = [z_1, \ldots, z_K]$:
+\[
+\text{softmax}(\vect{z})_i = \frac{\exp(z_i)}{\sum_{j=1}^K \exp(z_j)}
+\]
+\end{definition}
+
+Properties:
+\begin{itemize}
+    \item All outputs positive: $\text{softmax}(\vect{z})_i > 0$
+    \item Sum to 1: $\sum_i \text{softmax}(\vect{z})_i = 1$
+    \item Preserves order: if $z_i > z_j$ then $\text{softmax}(\vect{z})_i > \text{softmax}(\vect{z})_j$
+    \item Translation invariant: $\text{softmax}(\vect{z} + c) = \text{softmax}(\vect{z})$
+\end{itemize}
+
+\subsection{Temperature Scaling}
+
+We can control the "sharpness" of the distribution:
+
+\begin{definition}{Softmax with Temperature}{}
+\[
+\text{softmax}_T(\vect{z})_i = \frac{\exp(z_i/T)}{\sum_{j=1}^K \exp(z_j/T)}
+\]
+
+\begin{itemize}
+    \item $T \to 0$: Distribution becomes one-hot (argmax)
+    \item $T = 1$: Standard softmax
+    \item $T \to \infty$: Distribution becomes uniform
+\end{itemize}
+\end{definition}
+
+\begin{connection}
+Temperature is used in LLM text generation:
+\begin{itemize}
+    \item \textbf{Low temperature} ($T = 0.1$): Deterministic, focused, repetitive
+    \item \textbf{Medium temperature} ($T = 0.7$): Balanced, natural
+    \item \textbf{High temperature} ($T = 1.5$): Creative, diverse, sometimes incoherent
+\end{itemize}
+\end{connection}
+
+\section{Sampling Strategies for LLMs}
+
+\subsection{Greedy Decoding}
+
+Always pick the most likely token:
+\[
+w_t = \argmax_w P(w | w_{1:t-1})
+\]
+
+Simple but often produces repetitive text!
+
+\subsection{Top-k Sampling}
+
+Sample from the $k$ most likely tokens:
+\begin{enumerate}
+    \item Sort tokens by probability
+    \item Keep only top $k$
+    \item Renormalize probabilities
+    \item Sample from this restricted distribution
+\end{enumerate}
+
+\subsection{Nucleus (Top-p) Sampling}
+
+Sample from the smallest set of tokens whose cumulative probability exceeds $p$:
+\begin{enumerate}
+    \item Sort tokens by probability (descending)
+    \item Find smallest set $S$ where $\sum_{w \in S} P(w) \geq p$
+    \item Sample from $S$ (renormalized)
+\end{enumerate}
+
+\begin{connection}
+Modern LLMs typically use nucleus sampling with $p = 0.9$ or $p = 0.95$. This balances quality and diversity better than top-k!
+\end{connection}
+
+\section{Kullback-Leibler (KL) Divergence}
+
+\subsection{Measuring Distance Between Distributions}
+
+How different are two probability distributions?
+
+\begin{definition}{KL Divergence}{}
+For discrete distributions $P$ and $Q$:
+\[
+D_{KL}(P \| Q) = \sum_i P(i) \log\frac{P(i)}{Q(i)}
+\]
+
+For continuous distributions:
+\[
+D_{KL}(P \| Q) = \int p(x) \log\frac{p(x)}{q(x)} dx
+\]
+\end{definition}
+
+Properties:
+\begin{itemize}
+    \item Non-negative: $D_{KL}(P \| Q) \geq 0$
+    \item Zero iff identical: $D_{KL}(P \| Q) = 0$ iff $P = Q$
+    \item NOT symmetric: $D_{KL}(P \| Q) \neq D_{KL}(Q \| P)$
+    \item NOT a metric (doesn't satisfy triangle inequality)
+\end{itemize}
+
+\begin{connection}
+KL divergence in machine learning:
+\begin{itemize}
+    \item \textbf{Cross-entropy loss}: Minimizing cross-entropy is equivalent to minimizing KL divergence
+    \item \textbf{Variational inference}: Approximate complex posteriors with simple distributions
+    \item \textbf{Knowledge distillation}: Match student and teacher distributions
+    \item \textbf{RLHF}: Constrain how much the policy can change
+\end{itemize}
+\end{connection}
+
+\section{Cross-Entropy}
+
+\subsection{Definition and Connection to KL Divergence}
+
+\begin{definition}{Cross-Entropy}{}
+For distributions $P$ (true) and $Q$ (predicted):
+\[
+H(P, Q) = -\sum_i P(i) \log Q(i)
+\]
+\end{definition}
+
+Relationship to KL divergence:
+\[
+D_{KL}(P \| Q) = H(P, Q) - H(P)
+\]
+
+Since $H(P)$ (entropy of true distribution) is constant during training:
+\[
+\min_Q D_{KL}(P \| Q) \equiv \min_Q H(P, Q)
+\]
+
+\begin{connection}
+\textbf{This is why we minimize cross-entropy loss in neural networks!}
+
+For classification with true label $y$ and predicted probabilities $\hat{\vect{y}}$:
+\[
+\mathcal{L} = -\log \hat{y}_{\text{true class}}
+\]
+
+This is cross-entropy between one-hot distribution (true label) and predicted distribution!
+\end{connection}
+
+\section{Maximum Likelihood Estimation}
+
+\subsection{The Principle}
+
+Given data, find the distribution parameters that make the data most likely.
+
+\begin{definition}{Maximum Likelihood Estimation (MLE)}{}
+For data $\mathcal{D} = \{x_1, \ldots, x_n\}$ and model with parameters $\theta$:
+\[
+\hat{\theta}_{MLE} = \argmax_\theta P(\mathcal{D} | \theta) = \argmax_\theta \prod_{i=1}^n P(x_i | \theta)
+\]
+
+Usually we maximize log-likelihood instead:
+\[
+\hat{\theta}_{MLE} = \argmax_\theta \sum_{i=1}^n \log P(x_i | \theta)
+\]
+\end{definition}
+
+\begin{connection}
+\textbf{Training neural networks is maximum likelihood estimation!}
+
+For language modeling, we maximize:
+\[
+\sum_{t=1}^T \log P(w_t | w_{1:t-1}; \theta)
+\]
+
+This is exactly MLE with the categorical distribution parameterized by the neural network!
+\end{connection}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Softmax Computation}
+
+Given logits $\vect{z} = [2.0, 1.0, 0.1]$:
+\begin{enumerate}[label=(\alph*)]
+    \item Compute softmax probabilities
+    \item Compute softmax with temperature $T = 0.5$
+    \item Compute softmax with temperature $T = 2.0$
+\end{enumerate}
+
+\subsection{Problem 2: KL Divergence}
+
+Compute $D_{KL}(P \| Q)$ where:
+\[
+P = [0.5, 0.3, 0.2], \quad Q = [0.4, 0.4, 0.2]
+\]
+
+\subsection{Problem 3: Sampling}
+
+Given probability distribution $[0.5, 0.3, 0.1, 0.05, 0.05]$:
+\begin{enumerate}[label=(\alph*)]
+    \item What tokens are selected by top-k sampling with $k=3$?
+    \item What tokens are selected by nucleus sampling with $p=0.9$?
+\end{enumerate}
+
+\subsection{Problem 4: Cross-Entropy}
+
+For 3-class classification, true label is class 2. Predicted probabilities are $[0.2, 0.7, 0.1]$.
+
+Compute the cross-entropy loss.
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Categorical distribution} is what LLMs output after softmax
+    \item \textbf{Normal distribution} appears everywhere due to Central Limit Theorem
+    \item \textbf{Softmax} converts logits to valid probability distributions
+    \item \textbf{Temperature} controls the sharpness of distributions
+    \item \textbf{Top-k and nucleus sampling} balance quality and diversity in generation
+    \item \textbf{KL divergence} measures how different two distributions are
+    \item \textbf{Cross-entropy loss} is equivalent to minimizing KL divergence
+    \item \textbf{Maximum likelihood} is the principle behind neural network training
+\end{itemize}
+
+\begin{connection}
+Probability distributions are the language LLMs speak! Understanding softmax, cross-entropy, and sampling strategies is essential for both training and inference. Every time you generate text from ChatGPT, these concepts are at work—determining which words to sample and with what probability!
+\end{connection}

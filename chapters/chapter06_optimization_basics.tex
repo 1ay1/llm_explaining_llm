@@ -1,0 +1,173 @@
+\chapter{Optimization: Finding the Best Parameters}
+
+\section{Introduction: The Training Problem}
+
+Training a neural network is fundamentally an optimization problem: find the weights $\vect{w}^*$ that minimize the loss function $\mathcal{L}(\vect{w})$.
+
+\begin{intuition}
+Imagine you're blindfolded on a mountain and want to reach the valley (minimum). You can feel the slope beneath your feet. Optimization algorithms are strategies for reaching the valley efficiently!
+\end{intuition}
+
+\begin{connection}
+Every LLM is trained using optimization. Understanding these algorithms is understanding how models learn!
+\end{connection}
+
+\section{The Optimization Problem}
+
+\subsection{General Form}
+
+\begin{definition}{Optimization Problem}{}
+\[
+\vect{w}^* = \argmin_{\vect{w} \in \R^d} \mathcal{L}(\vect{w})
+\]
+where $\mathcal{L}: \R^d \to \R$ is the loss function.
+\end{definition}
+
+For supervised learning:
+\[
+\mathcal{L}(\vect{w}) = \frac{1}{n}\sum_{i=1}^n \ell(f(\vect{x}_i; \vect{w}), y_i)
+\]
+
+\section{Gradient Descent}
+
+\subsection{The Basic Algorithm}
+
+\begin{definition}{Gradient Descent}{}
+Initialize $\vect{w}^{(0)}$ randomly. Then iterate:
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \eta \nabla \mathcal{L}(\vect{w}^{(t)})
+\]
+where $\eta > 0$ is the learning rate.
+\end{definition}
+
+\begin{intuition}
+The gradient $\nabla \mathcal{L}$ points uphill. Moving in the direction $-\nabla \mathcal{L}$ takes us downhill!
+\end{intuition}
+
+\subsection{Convergence Analysis}
+
+For smooth, convex functions:
+\begin{theorem}{GD Convergence}{}
+With appropriate learning rate, gradient descent converges to the global minimum.
+\end{theorem}
+
+\section{Stochastic Gradient Descent (SGD)}
+
+\subsection{The Motivation}
+
+Computing the full gradient requires all $n$ training examples—expensive for large datasets!
+
+\begin{definition}{Stochastic Gradient Descent}{}
+At each step, sample one example $(x_i, y_i)$ and update:
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \eta \nabla_{\vect{w}} \ell(f(\vect{x}_i; \vect{w}^{(t)}), y_i)
+\]
+\end{definition}
+
+\subsection{Mini-Batch SGD}
+
+In practice, use small batches:
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \eta \frac{1}{|\mathcal{B}|}\sum_{i \in \mathcal{B}} \nabla_{\vect{w}} \ell(f(\vect{x}_i; \vect{w}^{(t)}), y_i)
+\]
+
+Typical batch sizes: 32, 64, 128, 256.
+
+\section{Momentum}
+
+\subsection{The Idea}
+
+Add "inertia" to optimization—remember previous gradients!
+
+\begin{definition}{SGD with Momentum}{}
+\begin{align*}
+\vect{v}^{(t+1)} &= \beta \vect{v}^{(t)} + \nabla \mathcal{L}(\vect{w}^{(t)}) \\
+\vect{w}^{(t+1)} &= \vect{w}^{(t)} - \eta \vect{v}^{(t+1)}
+\end{align*}
+where $\beta \in [0, 1)$ is the momentum coefficient (typically 0.9).
+\end{definition}
+
+\begin{intuition}
+Like a ball rolling downhill—it builds up speed and can roll through small bumps!
+\end{intuition}
+
+\section{Adaptive Learning Rates}
+
+\subsection{AdaGrad}
+
+Adapt learning rate per parameter:
+\[
+\vect{w}^{(t+1)}_i = \vect{w}^{(t)}_i - \frac{\eta}{\sqrt{G_{ii}^{(t)}} + \epsilon} g_i^{(t)}
+\]
+where $G_{ii}^{(t)} = \sum_{\tau=1}^t (g_i^{(\tau)})^2$.
+
+\subsection{RMSProp}
+
+Use exponential moving average:
+\[
+\vect{v}^{(t+1)} = \beta \vect{v}^{(t)} + (1-\beta)(\nabla \mathcal{L})^2
+\]
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \frac{\eta}{\sqrt{\vect{v}^{(t+1)}} + \epsilon} \nabla \mathcal{L}
+\]
+
+\section{Adam: The Industry Standard}
+
+\begin{definition}{Adam Optimizer}{}
+Combine momentum and adaptive learning rates:
+
+\begin{align*}
+\vect{m}^{(t+1)} &= \beta_1 \vect{m}^{(t)} + (1-\beta_1)\nabla \mathcal{L} \\
+\vect{v}^{(t+1)} &= \beta_2 \vect{v}^{(t)} + (1-\beta_2)(\nabla \mathcal{L})^2 \\
+\hat{\vect{m}} &= \frac{\vect{m}^{(t+1)}}{1-\beta_1^t} \\
+\hat{\vect{v}} &= \frac{\vect{v}^{(t+1)}}{1-\beta_2^t} \\
+\vect{w}^{(t+1)} &= \vect{w}^{(t)} - \eta \frac{\hat{\vect{m}}}{\sqrt{\hat{\vect{v}}} + \epsilon}
+\end{align*}
+
+Default: $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$.
+\end{definition}
+
+\begin{connection}
+Adam is the default optimizer for training most LLMs! It combines the best of momentum and adaptive learning rates.
+\end{connection}
+
+\section{Learning Rate Schedules}
+
+\subsection{Step Decay}
+
+Reduce learning rate at fixed intervals:
+\[
+\eta_t = \eta_0 \cdot \gamma^{\lfloor t/k \rfloor}
+\]
+
+\subsection{Cosine Annealing}
+
+\[
+\eta_t = \eta_{\min} + \frac{1}{2}(\eta_{\max} - \eta_{\min})(1 + \cos(\pi t/T))
+\]
+
+\subsection{Warmup}
+
+Gradually increase learning rate at the start:
+\[
+\eta_t = \eta_{\max} \cdot \min(1, t/T_{\text{warmup}})
+\]
+
+\begin{connection}
+Modern LLM training uses warmup + cosine decay. This stabilizes early training and helps convergence!
+\end{connection}
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Gradient descent} uses first-order information to minimize loss
+    \item \textbf{SGD} makes training tractable for large datasets
+    \item \textbf{Momentum} accelerates convergence and escapes local minima
+    \item \textbf{Adam} is the most popular optimizer for deep learning
+    \item \textbf{Learning rate schedules} improve final performance
+    \item Understanding optimization is key to training LLMs effectively
+\end{itemize}
+
+\begin{connection}
+You now understand how neural networks learn! In the next chapters, we'll explore probability theory and information theory—the foundations for understanding language modeling as a probabilistic task.
+\end{connection}

@@ -1,0 +1,372 @@
+\chapter{Backpropagation: How Neural Networks Learn}
+
+\section{Introduction: The Learning Algorithm}
+
+Backpropagation is the most important algorithm in deep learning. It's how neural networks learn from data. Despite its reputation for being complex, backpropagation is just the chain rule applied systematically!
+
+\begin{intuition}
+Imagine you're hiking down a mountain in the fog. You can only see a few feet ahead. Backpropagation is like feeling the slope beneath your feet at each step and using that information to figure out which direction to walk.
+
+More precisely: given an error at the output, backpropagation tells us how to adjust each weight in the network to reduce that error.
+\end{intuition}
+
+\begin{connection}
+Every time an LLM learns—whether during pre-training on trillions of tokens or fine-tuning on a specific task—it's using backpropagation. Understanding this algorithm is understanding how AI learns!
+\end{connection}
+
+\section{The Setup: Forward Pass}
+
+\subsection{A Simple Neural Network}
+
+Consider a simple 2-layer network:
+\[
+\text{Input } \vect{x} \xrightarrow{\mat{W}^{(1)}} \vect{z}^{(1)} \xrightarrow{\sigma} \vect{a}^{(1)} \xrightarrow{\mat{W}^{(2)}} \vect{z}^{(2)} \xrightarrow{\sigma} \vect{a}^{(2)} \xrightarrow{\text{Loss}} \mathcal{L}
+\]
+
+Mathematically:
+\begin{align*}
+\vect{z}^{(1)} &= \mat{W}^{(1)}\vect{x} + \vect{b}^{(1)} \\
+\vect{a}^{(1)} &= \sigma(\vect{z}^{(1)}) \\
+\vect{z}^{(2)} &= \mat{W}^{(2)}\vect{a}^{(1)} + \vect{b}^{(2)} \\
+\vect{a}^{(2)} &= \sigma(\vect{z}^{(2)}) \\
+\mathcal{L} &= \text{loss}(\vect{a}^{(2)}, \vect{y})
+\end{align*}
+
+\subsection{Forward Pass Example}
+
+\begin{example}
+Input: $\vect{x} = \begin{bmatrix} 0.5 \\ 0.3 \end{bmatrix}$
+
+Weights: $\mat{W}^{(1)} = \begin{bmatrix} 0.2 & 0.8 \\ 0.5 & 0.1 \end{bmatrix}$, $\vect{b}^{(1)} = \begin{bmatrix} 0.1 \\ 0.2 \end{bmatrix}$
+
+Layer 1:
+\[
+\vect{z}^{(1)} = \begin{bmatrix} 0.2 & 0.8 \\ 0.5 & 0.1 \end{bmatrix}\begin{bmatrix} 0.5 \\ 0.3 \end{bmatrix} + \begin{bmatrix} 0.1 \\ 0.2 \end{bmatrix} = \begin{bmatrix} 0.44 \\ 0.48 \end{bmatrix}
+\]
+
+With ReLU: $\vect{a}^{(1)} = \begin{bmatrix} 0.44 \\ 0.48 \end{bmatrix}$
+
+Continue this process through all layers to get final output and loss.
+\end{example}
+
+\section{The Goal: Computing Gradients}
+
+We want to compute:
+\[
+\frac{\partial \mathcal{L}}{\partial \mat{W}^{(1)}}, \quad \frac{\partial \mathcal{L}}{\partial \vect{b}^{(1)}}, \quad \frac{\partial \mathcal{L}}{\partial \mat{W}^{(2)}}, \quad \frac{\partial \mathcal{L}}{\partial \vect{b}^{(2)}}
+\]
+
+These tell us how to adjust each weight to reduce the loss!
+
+\begin{intuition}
+$\frac{\partial \mathcal{L}}{\partial w_{ij}}$ answers: "If I increase weight $w_{ij}$ by a tiny amount, how much does the loss change?"
+
+If positive: increasing the weight increases loss (bad!) → decrease the weight
+If negative: increasing the weight decreases loss (good!) → increase the weight
+\end{intuition}
+
+\section{Backward Pass: The Chain Rule in Action}
+
+\subsection{Output Layer Gradient}
+
+Start at the end and work backwards!
+
+\subsubsection{Step 1: Loss to Output}
+
+For MSE loss: $\mathcal{L} = \frac{1}{2}\norm{\vect{a}^{(2)} - \vect{y}}^2$
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{a}^{(2)}} = \vect{a}^{(2)} - \vect{y}
+\]
+
+\subsubsection{Step 2: Output to Pre-Activation}
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{z}^{(2)}} = \frac{\partial \mathcal{L}}{\partial \vect{a}^{(2)}} \odot \sigma'(\vect{z}^{(2)})
+\]
+
+where $\odot$ is element-wise multiplication.
+
+\begin{intuition}
+This is the chain rule! We multiply by the derivative of the activation function.
+
+For ReLU: $\sigma'(z) = \begin{cases} 1 & z > 0 \\ 0 & z \leq 0 \end{cases}$
+
+So gradients only flow through active neurons!
+\end{intuition}
+
+\subsubsection{Step 3: Gradient with Respect to Weights}
+
+\[
+\frac{\partial \mathcal{L}}{\partial \mat{W}^{(2)}} = \frac{\partial \mathcal{L}}{\partial \vect{z}^{(2)}} (\vect{a}^{(1)})^\top
+\]
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{b}^{(2)}} = \frac{\partial \mathcal{L}}{\partial \vect{z}^{(2)}}
+\]
+
+\begin{intuition}
+Why this form? Recall $\vect{z}^{(2)} = \mat{W}^{(2)}\vect{a}^{(1)} + \vect{b}^{(2)}$
+
+The gradient has the form of an outer product: it tells us how much each weight contributed to each output.
+\end{intuition}
+
+\subsection{Hidden Layer Gradient}
+
+Now propagate back to layer 1:
+
+\subsubsection{Step 4: Backpropagate Through Weights}
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{a}^{(1)}} = (\mat{W}^{(2)})^\top \frac{\partial \mathcal{L}}{\partial \vect{z}^{(2)}}
+\]
+
+\begin{intuition}
+The gradient flows backwards through the transpose of the weight matrix! This makes sense: forward pass multiplies by $\mat{W}$, backward pass multiplies by $\mat{W}^\top$.
+\end{intuition}
+
+\subsubsection{Step 5: Through Activation}
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{z}^{(1)}} = \frac{\partial \mathcal{L}}{\partial \vect{a}^{(1)}} \odot \sigma'(\vect{z}^{(1)})
+\]
+
+\subsubsection{Step 6: To First Layer Weights}
+
+\[
+\frac{\partial \mathcal{L}}{\partial \mat{W}^{(1)}} = \frac{\partial \mathcal{L}}{\partial \vect{z}^{(1)}} \vect{x}^\top
+\]
+
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{b}^{(1)}} = \frac{\partial \mathcal{L}}{\partial \vect{z}^{(1)}}
+\]
+
+\section{The Backpropagation Algorithm}
+
+\begin{definition}{Backpropagation Algorithm}{}
+\textbf{Forward Pass:}
+\begin{enumerate}
+    \item Compute activations layer by layer: $\vect{a}^{(0)} = \vect{x}$
+    \item For $\ell = 1$ to $L$:
+    \begin{itemize}
+        \item $\vect{z}^{(\ell)} = \mat{W}^{(\ell)}\vect{a}^{(\ell-1)} + \vect{b}^{(\ell)}$
+        \item $\vect{a}^{(\ell)} = \sigma(\vect{z}^{(\ell)})$
+    \end{itemize}
+    \item Compute loss: $\mathcal{L} = \text{loss}(\vect{a}^{(L)}, \vect{y})$
+\end{enumerate}
+
+\textbf{Backward Pass:}
+\begin{enumerate}
+    \item Compute output gradient: $\delta^{(L)} = \frac{\partial \mathcal{L}}{\partial \vect{z}^{(L)}}$
+    \item For $\ell = L$ down to $1$:
+    \begin{itemize}
+        \item $\frac{\partial \mathcal{L}}{\partial \mat{W}^{(\ell)}} = \delta^{(\ell)}(\vect{a}^{(\ell-1)})^\top$
+        \item $\frac{\partial \mathcal{L}}{\partial \vect{b}^{(\ell)}} = \delta^{(\ell)}$
+        \item $\delta^{(\ell-1)} = ((\mat{W}^{(\ell)})^\top \delta^{(\ell)}) \odot \sigma'(\vect{z}^{(\ell-1)})$
+    \end{itemize}
+\end{enumerate}
+\end{definition}
+
+\section{Computational Efficiency}
+
+\subsection{Why Backpropagation is Efficient}
+
+Computing gradients naively would require:
+\begin{itemize}
+    \item For each parameter: perturb it, compute loss, measure change
+    \item $O(P)$ forward passes where $P$ is number of parameters
+    \item For GPT-3: 175 billion forward passes!
+\end{itemize}
+
+Backpropagation computes all gradients in:
+\begin{itemize}
+    \item 1 forward pass + 1 backward pass
+    \item $O(P)$ total operations
+    \item Backward pass costs roughly 2× forward pass
+\end{itemize}
+
+\begin{connection}
+This is why deep learning is possible! Without backpropagation's efficiency, we couldn't train large models.
+\end{connection}
+
+\section{Common Activation Functions and Their Derivatives}
+
+\subsection{Sigmoid}
+
+\[
+\sigma(z) = \frac{1}{1 + e^{-z}}, \quad \sigma'(z) = \sigma(z)(1 - \sigma(z))
+\]
+
+\begin{warning}
+Sigmoid derivatives are very small when $|z|$ is large (vanishing gradients!)
+\end{warning}
+
+\subsection{Tanh}
+
+\[
+\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}, \quad \tanh'(z) = 1 - \tanh^2(z)
+\]
+
+\subsection{ReLU}
+
+\[
+\text{ReLU}(z) = \max(0, z), \quad \text{ReLU}'(z) = \begin{cases} 1 & z > 0 \\ 0 & z \leq 0 \end{cases}
+\]
+
+\begin{intuition}
+ReLU's derivative is simple: 1 or 0. This makes backprop fast and avoids vanishing gradients for positive inputs!
+\end{intuition}
+
+\subsection{Softmax (for classification)}
+
+\[
+\text{softmax}(\vect{z})_i = \frac{e^{z_i}}{\sum_j e^{z_j}}
+\]
+
+The Jacobian is:
+\[
+\frac{\partial \text{softmax}(\vect{z})_i}{\partial z_j} = \text{softmax}(\vect{z})_i(\delta_{ij} - \text{softmax}(\vect{z})_j)
+\]
+
+where $\delta_{ij}$ is the Kronecker delta.
+
+\section{Backpropagation Through Different Operations}
+
+\subsection{Matrix Multiplication}
+
+Forward: $\vect{y} = \mat{W}\vect{x}$
+
+Backward:
+\[
+\frac{\partial \mathcal{L}}{\partial \mat{W}} = \frac{\partial \mathcal{L}}{\partial \vect{y}} \vect{x}^\top, \quad \frac{\partial \mathcal{L}}{\partial \vect{x}} = \mat{W}^\top \frac{\partial \mathcal{L}}{\partial \vect{y}}
+\]
+
+\subsection{Element-wise Operations}
+
+Forward: $\vect{y} = \vect{a} \odot \vect{b}$
+
+Backward:
+\[
+\frac{\partial \mathcal{L}}{\partial \vect{a}} = \frac{\partial \mathcal{L}}{\partial \vect{y}} \odot \vect{b}, \quad \frac{\partial \mathcal{L}}{\partial \vect{b}} = \frac{\partial \mathcal{L}}{\partial \vect{y}} \odot \vect{a}
+\]
+
+\subsection{Concatenation}
+
+Forward: $\vect{z} = [\vect{a}; \vect{b}]$
+
+Backward: Split the gradient appropriately
+
+\subsection{Sum/Mean}
+
+Forward: $y = \sum_i x_i$
+
+Backward: $\frac{\partial \mathcal{L}}{\partial x_i} = \frac{\partial \mathcal{L}}{\partial y}$ for all $i$
+
+\begin{intuition}
+Gradients "broadcast" backwards—the same gradient flows to all inputs that contributed to the sum.
+\end{intuition}
+
+\section{Automatic Differentiation}
+
+Modern frameworks (PyTorch, TensorFlow) implement \vocab{automatic differentiation}:
+
+\begin{definition}{Computational Graph}{}
+Operations are represented as a directed acyclic graph (DAG):
+\begin{itemize}
+    \item Nodes: Variables and operations
+    \item Edges: Data flow
+\end{itemize}
+
+Forward pass: Traverse graph forward, computing values
+Backward pass: Traverse graph backward, computing gradients
+\end{definition}
+
+\begin{connection}
+When you write:
+\begin{verbatim}
+loss.backward()
+\end{verbatim}
+
+PyTorch automatically traverses the computational graph and applies backpropagation!
+\end{connection}
+
+\section{Vanishing and Exploding Gradients}
+
+\subsection{The Problem}
+
+In deep networks: $\frac{\partial \mathcal{L}}{\partial \vect{a}^{(1)}} = \prod_{\ell=2}^L (\mat{W}^{(\ell)})^\top \text{diag}(\sigma'(\vect{z}^{(\ell-1)}))$
+
+This is a product of many matrices!
+
+\begin{warning}
+\textbf{Vanishing Gradients:} If $\norm{\mat{W}^{(\ell)}} < 1$ or $\sigma'$ is small, gradients exponentially decay. Early layers get tiny gradients and learn very slowly.
+
+\textbf{Exploding Gradients:} If $\norm{\mat{W}^{(\ell)}} > 1$, gradients exponentially grow, causing numerical instability.
+\end{warning}
+
+\subsection{Solutions}
+
+\begin{itemize}
+    \item \textbf{Better activations}: ReLU avoids vanishing for positive inputs
+    \item \textbf{Careful initialization}: Xavier/He initialization
+    \item \textbf{Batch normalization}: Normalizes activations
+    \item \textbf{Residual connections}: Skip connections
+    \item \textbf{Gradient clipping}: Cap gradient magnitude
+    \item \textbf{Layer normalization}: Used in transformers
+\end{itemize}
+
+\section{Backpropagation Through Time (BPTT)}
+
+For recurrent networks processing sequences:
+
+\[
+\vect{h}_t = \sigma(\mat{W}\vect{h}_{t-1} + \mat{U}\vect{x}_t)
+\]
+
+Gradients must flow backwards through time:
+\[
+\frac{\partial \mathcal{L}}{\partial \mat{W}} = \sum_{t=1}^T \frac{\partial \mathcal{L}_t}{\partial \mat{W}}
+\]
+
+\begin{warning}
+BPTT suffers from vanishing gradients over long sequences—this is why transformers with attention replaced RNNs for language modeling!
+\end{warning}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Manual Backprop}
+
+Given a 2-layer network with ReLU:
+\begin{itemize}
+    \item $\vect{x} = [1, 2]$, $\vect{y} = [1]$
+    \item $\mat{W}^{(1)} = \begin{bmatrix} 0.5 & 0.5 \\ -0.5 & 0.5 \end{bmatrix}$, $\vect{b}^{(1)} = [0, 0]$
+    \item $\mat{W}^{(2)} = \begin{bmatrix} 1 & 1 \end{bmatrix}$, $b^{(2)} = 0$
+    \item Loss: $\mathcal{L} = \frac{1}{2}(a^{(2)} - y)^2$
+\end{itemize}
+
+Compute all gradients by hand (forward pass, then backward pass).
+
+\subsection{Problem 2: Derivative Verification}
+
+Implement numerical gradient checking to verify your backpropagation implementation.
+
+\subsection{Problem 3: Gradient Flow}
+
+For a 10-layer network with sigmoid activations, if all weights have eigenvalues around 0.5, what happens to gradients at layer 1?
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Backpropagation is the chain rule} applied systematically
+    \item \textbf{Forward pass}: Compute outputs layer by layer
+    \item \textbf{Backward pass}: Compute gradients layer by layer (in reverse)
+    \item \textbf{Efficiency}: All gradients computed in one forward + one backward pass
+    \item \textbf{Local gradients}: Each operation only needs its local derivative
+    \item \textbf{Vanishing/exploding gradients} are major challenges in deep networks
+    \item Modern frameworks handle backpropagation automatically via computational graphs
+    \item Understanding backpropagation is understanding how all neural networks learn
+\end{itemize}
+
+\begin{connection}
+Backpropagation is what makes training LLMs possible. When GPT models learn language patterns from billions of examples, backpropagation is computing gradients for 175 billion parameters, determining how to adjust each tiny weight to improve predictions. Now you understand the fundamental learning algorithm of AI!
+\end{connection}

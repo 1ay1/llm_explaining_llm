@@ -1,0 +1,392 @@
+\chapter{Transformer Architecture: Putting It All Together}
+
+\section{Introduction: The Architecture That Changed Everything}
+
+The Transformer architecture, introduced in "Attention Is All You Need" (2017), revolutionized NLP and became the foundation for all modern LLMs. It combines everything we've learned: linear algebra, calculus, probability, optimization, and attention mechanisms.
+
+\begin{intuition}
+Think of a Transformer as a sophisticated pattern matching and transformation machine:
+\begin{itemize}
+    \item \textbf{Input}: A sequence of tokens (words, subwords)
+    \item \textbf{Processing}: Multiple layers of attention and feedforward networks
+    \item \textbf{Output}: Predictions, representations, or generated text
+\end{itemize}
+
+Each layer refines the representation, building increasingly abstract understanding.
+\end{intuition}
+
+\begin{connection}
+Every modern LLM—GPT, BERT, T5, Claude, LLaMA—is built on the Transformer architecture. Understanding transformers is understanding how these models work!
+\end{connection}
+
+\section{High-Level Architecture}
+
+\subsection{The Two Main Variants}
+
+\subsubsection{Encoder-Only (BERT-style)}
+
+Used for understanding tasks (classification, question answering):
+\[
+\text{Input tokens} \to \text{Encoder layers} \to \text{Contextualized representations}
+\]
+
+\subsubsection{Decoder-Only (GPT-style)}
+
+Used for generation tasks (language modeling, text generation):
+\[
+\text{Input tokens} \to \text{Decoder layers} \to \text{Next token prediction}
+\]
+
+\subsubsection{Encoder-Decoder (T5-style)}
+
+Used for seq-to-seq tasks (translation, summarization):
+\[
+\text{Source} \to \text{Encoder} \to \text{Cross-attention} \to \text{Decoder} \to \text{Target}
+\]
+
+\begin{connection}
+Most modern LLMs (GPT-3, GPT-4, Claude, LLaMA) use decoder-only architecture. It's simpler and scales better!
+\end{connection}
+
+\section{The Transformer Block}
+
+A Transformer consists of stacked blocks. Each block has two main components:
+
+\subsection{Multi-Head Self-Attention Layer}
+
+\[
+\text{Attention}(\vect{X}) = \text{MultiHead}(\vect{X}, \vect{X}, \vect{X})
+\]
+
+For each head $h$:
+\begin{align*}
+\mat{Q}_h &= \vect{X}\mat{W}_h^Q \\
+\mat{K}_h &= \vect{X}\mat{W}_h^K \\
+\mat{V}_h &= \vect{X}\mat{W}_h^V \\
+\text{head}_h &= \text{softmax}\left(\frac{\mat{Q}_h\mat{K}_h^\top}{\sqrt{d_k}}\right)\mat{V}_h
+\end{align*}
+
+Concatenate all heads and project:
+\[
+\text{MultiHead}(\vect{X}) = [\text{head}_1; \ldots; \text{head}_H]\mat{W}^O
+\]
+
+\subsection{Position-wise Feedforward Network}
+
+After attention, each position independently goes through an MLP:
+\[
+\text{FFN}(\vect{x}) = \text{GELU}(\vect{x}\mat{W}_1 + \vect{b}_1)\mat{W}_2 + \vect{b}_2
+\]
+
+Typically:
+\begin{itemize}
+    \item Input/output dimension: $d_{\text{model}}$ (e.g., 768, 1024, 4096)
+    \item Hidden dimension: $4 \times d_{\text{model}}$ (expansion then compression)
+\end{itemize}
+
+\section{Residual Connections and Layer Normalization}
+
+\subsection{Residual Connections}
+
+Each sub-layer has a residual connection:
+\[
+\text{Output} = \text{LayerNorm}(\vect{X} + \text{SubLayer}(\vect{X}))
+\]
+
+\begin{intuition}
+Residual connections create "shortcuts" for gradients to flow backward. Without them, deep networks suffer from vanishing gradients!
+
+Think of it as: "Start with the input and add refinements" rather than "completely transform the input."
+\end{intuition}
+
+\subsection{Layer Normalization}
+
+\begin{definition}{Layer Normalization}{}
+For input $\vect{x} \in \mathbb{R}^d$:
+\[
+\text{LayerNorm}(\vect{x}) = \gamma \odot \frac{\vect{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
+\]
+
+where:
+\begin{itemize}
+    \item $\mu = \frac{1}{d}\sum_{i=1}^d x_i$ (mean)
+    \item $\sigma^2 = \frac{1}{d}\sum_{i=1}^d (x_i - \mu)^2$ (variance)
+    \item $\gamma, \beta \in \mathbb{R}^d$ are learned parameters
+    \item $\epsilon$ is for numerical stability (e.g., $10^{-5}$)
+\end{itemize}
+\end{definition}
+
+\begin{intuition}
+Layer normalization stabilizes training by ensuring each layer's inputs have mean 0 and variance 1. This prevents activations from exploding or vanishing!
+\end{intuition}
+
+\section{Complete Transformer Block}
+
+\begin{definition}{Transformer Block (Decoder)}{}
+\begin{align*}
+\vect{X}_1 &= \text{LayerNorm}(\vect{X} + \text{MultiHeadAttention}(\vect{X})) \\
+\vect{X}_2 &= \text{LayerNorm}(\vect{X}_1 + \text{FFN}(\vect{X}_1))
+\end{align*}
+\end{definition}
+
+In code-like notation:
+\begin{verbatim}
+def transformer_block(X):
+    # Multi-head self-attention with residual
+    attn_out = multi_head_attention(X, X, X)
+    X = layer_norm(X + attn_out)
+
+    # Feedforward with residual
+    ffn_out = feedforward(X)
+    X = layer_norm(X + ffn_out)
+
+    return X
+\end{verbatim}
+
+\section{Input Embeddings and Positional Encoding}
+
+\subsection{Token Embeddings}
+
+Map discrete tokens to continuous vectors:
+\[
+\text{token}_i \to \vect{e}_i \in \mathbb{R}^{d_{\text{model}}}
+\]
+
+This is a learnable lookup table: $\mat{E} \in \mathbb{R}^{V \times d_{\text{model}}}$ where $V$ is vocabulary size.
+
+\subsection{Positional Encoding}
+
+Since attention is permutation-invariant, we need to inject position information!
+
+\subsubsection{Sinusoidal Positional Encoding (Original Transformer)}
+
+\[
+\text{PE}_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+\]
+\[
+\text{PE}_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+\]
+
+\begin{intuition}
+Different dimensions oscillate at different frequencies, creating unique "fingerprints" for each position.
+\end{intuition}
+
+\subsubsection{Learned Positional Embeddings (GPT-style)}
+
+Simply learn a position embedding matrix:
+\[
+\mat{P} \in \mathbb{R}^{n_{\max} \times d_{\text{model}}}
+\]
+
+where $n_{\max}$ is maximum sequence length.
+
+\subsection{Combining Embeddings}
+
+Final input to first transformer block:
+\[
+\vect{X}_{\text{input}} = \text{TokenEmbed}(\text{tokens}) + \text{PosEmbed}(\text{positions})
+\]
+
+\section{Output Layer and Prediction}
+
+\subsection{Language Modeling Head}
+
+For predicting next token, project to vocabulary:
+\[
+\text{logits} = \vect{X}_{\text{final}}\mat{W}_{\text{out}} + \vect{b}_{\text{out}}
+\]
+
+where $\mat{W}_{\text{out}} \in \mathbb{R}^{d_{\text{model}} \times V}$.
+
+Often, $\mat{W}_{\text{out}} = \mat{E}^\top$ (weight tying).
+
+\subsection{Softmax for Probabilities}
+
+\[
+p(\text{token}_i) = \frac{\exp(\text{logit}_i)}{\sum_j \exp(\text{logit}_j)}
+\]
+
+\section{Complete Architecture: GPT-style Decoder}
+
+\begin{definition}{GPT Architecture}{}
+\begin{enumerate}
+    \item \textbf{Input}: Token IDs $[t_1, t_2, \ldots, t_n]$
+    \item \textbf{Embedding}: $\vect{X}^{(0)} = \text{TokenEmbed} + \text{PosEmbed}$
+    \item \textbf{Transformer Blocks}: For $\ell = 1$ to $L$:
+    \begin{itemize}
+        \item $\vect{X}^{(\ell)} = \text{TransformerBlock}(\vect{X}^{(\ell-1)})$
+    \end{itemize}
+    \item \textbf{Final Layer Norm}: $\vect{X}_{\text{final}} = \text{LayerNorm}(\vect{X}^{(L)})$
+    \item \textbf{Output Projection}: $\text{logits} = \vect{X}_{\text{final}}\mat{W}_{\text{out}}$
+    \item \textbf{Loss}: Cross-entropy between predictions and true next tokens
+\end{enumerate}
+\end{definition}
+
+\section{Key Hyperparameters}
+
+\subsection{GPT-2 (Medium)}
+
+\begin{itemize}
+    \item Layers: $L = 24$
+    \item Model dimension: $d_{\text{model}} = 1024$
+    \item Number of heads: $H = 16$
+    \item Head dimension: $d_k = d_{\text{model}}/H = 64$
+    \item FFN dimension: $d_{ff} = 4 \times d_{\text{model}} = 4096$
+    \item Vocabulary: $V = 50,257$
+    \item Context length: $n_{\max} = 1024$
+    \item Total parameters: $\approx 345$M
+\end{itemize}
+
+\subsection{GPT-3 (175B)}
+
+\begin{itemize}
+    \item Layers: $L = 96$
+    \item Model dimension: $d_{\text{model}} = 12,288$
+    \item Number of heads: $H = 96$
+    \item Head dimension: $d_k = 128$
+    \item FFN dimension: $d_{ff} = 49,152$
+    \item Vocabulary: $V = 50,257$
+    \item Context length: $n_{\max} = 2048$
+    \item Total parameters: $175$B
+\end{itemize}
+
+\section{Training Objectives}
+
+\subsection{Causal Language Modeling}
+
+Predict next token given previous tokens:
+\[
+\mathcal{L} = -\sum_{t=1}^{T} \log p(w_t | w_1, \ldots, w_{t-1}; \theta)
+\]
+
+This is autoregressive generation with teacher forcing during training.
+
+\subsection{Masked Language Modeling (BERT)}
+
+Randomly mask tokens and predict them:
+\[
+\mathcal{L} = -\sum_{i \in \text{masked}} \log p(w_i | w_{\text{context}}; \theta)
+\]
+
+\section{Why Transformers Work So Well}
+
+\subsection{Key Advantages}
+
+\begin{enumerate}
+    \item \textbf{Parallelization}: Unlike RNNs, all positions computed simultaneously
+    \item \textbf{Long-range dependencies}: Attention directly connects distant tokens
+    \item \textbf{Scalability}: Architecture scales to billions of parameters
+    \item \textbf{Flexibility}: Same architecture for many tasks
+    \item \textbf{Gradient flow}: Residual connections help training deep networks
+\end{enumerate}
+
+\subsection{Mathematical Properties}
+
+\begin{theorem}{Universal Approximation (Informal)}{}
+With sufficient width and depth, transformers can approximate any sequence-to-sequence function to arbitrary precision.
+\end{theorem}
+
+\section{Computational Complexity}
+
+\subsection{Per Layer}
+
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Operation} & \textbf{Complexity} \\
+\hline
+Self-attention & $O(n^2 d)$ \\
+Feedforward & $O(n d^2)$ \\
+\hline
+\textbf{Total per layer} & $O(n^2 d + nd^2)$ \\
+\hline
+\end{tabular}
+\end{center}
+
+For long sequences ($n$ large): attention dominates.
+For large models ($d$ large): FFN dominates.
+
+\subsection{Full Model}
+
+With $L$ layers:
+\[
+\text{Total} = O(L(n^2 d + nd^2))
+\]
+
+\section{Modern Improvements}
+
+\subsection{Grouped Query Attention (GQA)}
+
+Share key/value projections across heads to reduce memory.
+
+\subsection{Flash Attention}
+
+Optimize attention computation to be faster and more memory-efficient.
+
+\subsection{Rotary Position Embeddings (RoPE)}
+
+Better position encoding that generalizes to longer sequences.
+
+\subsection{SwiGLU Activation}
+
+Replace GELU with gated linear units:
+\[
+\text{SwiGLU}(\vect{x}) = \text{Swish}(\vect{x}\mat{W}_1) \odot (\vect{x}\mat{W}_2)
+\]
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Parameter Counting}
+
+A transformer has:
+\begin{itemize}
+    \item $L = 12$ layers
+    \item $d = 768$
+    \item $H = 12$ heads
+    \item $d_{ff} = 3072$
+    \item $V = 50,000$
+\end{itemize}
+
+Calculate:
+\begin{enumerate}[label=(\alph*)]
+    \item Parameters in one attention layer
+    \item Parameters in one FFN layer
+    \item Total parameters in the model
+\end{enumerate}
+
+\subsection{Problem 2: Complexity Analysis}
+
+For sequence length $n = 2048$ and model dimension $d = 1024$:
+\begin{enumerate}[label=(\alph*)]
+    \item FLOPs for attention
+    \item FLOPs for FFN
+    \item Which dominates?
+\end{enumerate}
+
+\subsection{Problem 3: Architecture Design}
+
+Design a transformer for a specific task:
+\begin{itemize}
+    \item Task: Classify sentences (max 512 tokens) into 10 classes
+    \item Budget: 100M parameters
+    \item Requirement: Real-time inference
+\end{itemize}
+
+Choose appropriate hyperparameters and justify your choices.
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Transformers} stack attention and feedforward layers with residuals
+    \item \textbf{Layer normalization} stabilizes training
+    \item \textbf{Positional encodings} inject sequence order information
+    \item \textbf{Multi-head attention} learns diverse relationships in parallel
+    \item \textbf{Residual connections} enable training very deep networks
+    \item \textbf{Causal masking} enables autoregressive generation
+    \item The architecture is remarkably simple yet incredibly powerful
+    \item Scaling transformers (more layers, wider, more data) consistently improves performance
+\end{itemize}
+
+\begin{connection}
+You now understand the complete Transformer architecture! This is the foundation of all modern LLMs. Every component—from embeddings to attention to feedforward networks—uses the mathematics we've learned throughout this book. In the next chapter, we'll explore how these models are actually trained at scale, covering distributed training, mixed precision, and other engineering considerations that make billion-parameter models possible.
+\end{connection}

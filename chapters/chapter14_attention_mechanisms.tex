@@ -1,0 +1,572 @@
+\chapter{Attention Mechanisms: The Heart of Transformers}
+
+\section{Introduction: The Attention Revolution}
+
+In 2017, a paper titled "Attention Is All You Need" changed everything. Attention solved the problem of long-range dependencies by allowing every element to directly "look at" every other element.
+
+\begin{intuition}
+Imagine reading a sentence: "The animal didn't cross the street because it was too tired."
+
+What does "it" refer to? The animal or the street? Humans instantly focus \textit{attention} on "animal" to resolve this. Attention mechanisms do exactly this—they learn which words to focus on!
+\end{intuition}
+
+\begin{connection}
+Attention mechanisms are the core innovation that makes LLMs possible. Understanding attention is understanding how these models work.
+\end{connection}
+
+\section{The Problem: Sequential Processing Limitations}
+
+\subsection{Recurrent Neural Networks (RNNs)}
+
+Before transformers, sequences were processed with RNNs:
+\[
+\vect{h}_t = f(\mat{W}\vect{h}_{t-1} + \mat{U}\vect{x}_t)
+\]
+
+\begin{warning}
+RNNs have serious problems:
+\begin{itemize}
+    \item \textbf{Sequential processing}: Can't parallelize (must compute $\vect{h}_1$ before $\vect{h}_2$)
+    \item \textbf{Vanishing gradients}: Information from early tokens gets lost
+    \item \textbf{Fixed context}: Hidden state has fixed size, creating information bottleneck
+    \item \textbf{Long sequences}: Nearly impossible to capture dependencies 100+ tokens apart
+\end{itemize}
+\end{warning}
+
+\subsection{The Attention Solution}
+
+Instead of compressing everything into a fixed-size hidden state, attention lets each token directly access information from all other tokens!
+
+\begin{intuition}
+Think of attention as a database lookup:
+\begin{itemize}
+    \item You have a \textbf{query}: "What does 'it' refer to?"
+    \item You have \textbf{keys}: Labels for each word in the sentence
+    \item You have \textbf{values}: The actual information from each word
+    \item Attention computes: "Which keys match my query?" and retrieves corresponding values
+\end{itemize}
+\end{intuition}
+
+\section{Scaled Dot-Product Attention}
+
+\subsection{The Basic Mechanism}
+
+This is the fundamental attention operation!
+
+\begin{definition}{Scaled Dot-Product Attention}{}
+Given:
+\begin{itemize}
+    \item Queries: $\mat{Q} \in \R^{n \times d_k}$ (what we're looking for)
+    \item Keys: $\mat{K} \in \R^{m \times d_k}$ (what's available to look at)
+    \item Values: $\mat{V} \in \R^{m \times d_v}$ (the actual information)
+\end{itemize}
+
+Attention is computed as:
+\[
+\text{Attention}(\mat{Q}, \mat{K}, \mat{V}) = \text{softmax}\left(\frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}}\right)\mat{V}
+\]
+\end{definition}
+
+Let's break this down step by step!
+
+\subsection{Step 1: Compute Similarity Scores}
+
+First, compute how much each query matches each key:
+\[
+\mat{S} = \mat{Q}\mat{K}^\top \in \R^{n \times m}
+\]
+
+Element $s_{ij}$ is the dot product of query $i$ with key $j$:
+\[
+s_{ij} = \vect{q}_i \cdot \vect{k}_j = \sum_{d=1}^{d_k} q_{id} k_{jd}
+\]
+
+\begin{intuition}
+The dot product measures similarity! Large dot product means the query and key are pointing in similar directions—they're related!
+
+This is why we normalized vectors and learned about dot products in Chapter 1. It all comes together here!
+\end{intuition}
+
+\subsection{Step 2: Scale the Scores}
+
+Divide by $\sqrt{d_k}$:
+\[
+\mat{S}_{\text{scaled}} = \frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}}
+\]
+
+\begin{intuition}
+\textbf{Why scale?} When $d_k$ is large, dot products can become very large in magnitude. This pushes the softmax into regions with extremely small gradients (saturation).
+
+Dividing by $\sqrt{d_k}$ keeps the variance of dot products roughly constant regardless of dimension. It's a numerical stability trick!
+\end{intuition}
+
+\begin{example}
+If $\vect{q}$ and $\vect{k}$ have entries drawn from $\mathcal{N}(0, 1)$, then:
+\[
+\vect{q} \cdot \vect{k} = \sum_{i=1}^{d_k} q_i k_i \sim \mathcal{N}(0, d_k)
+\]
+
+The variance grows with $d_k$! Dividing by $\sqrt{d_k}$ gives:
+\[
+\frac{\vect{q} \cdot \vect{k}}{\sqrt{d_k}} \sim \mathcal{N}(0, 1)
+\]
+
+Now variance is constant!
+\end{example}
+
+\subsection{Step 3: Apply Softmax}
+
+Convert scores to probabilities:
+\[
+\mat{A} = \text{softmax}\left(\frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}}\right)
+\]
+
+For each row $i$ (each query):
+\[
+a_{ij} = \frac{\exp(s_{ij}/\sqrt{d_k})}{\sum_{k=1}^{m} \exp(s_{ik}/\sqrt{d_k})}
+\]
+
+\begin{intuition}
+Softmax converts arbitrary scores to a probability distribution:
+\begin{itemize}
+    \item All values are positive: $a_{ij} \geq 0$
+    \item They sum to 1: $\sum_j a_{ij} = 1$
+    \item Larger scores get larger probabilities (exponentially!)
+\end{itemize}
+
+These are \textbf{attention weights}: $a_{ij}$ tells us how much query $i$ should attend to key/value $j$.
+\end{intuition}
+
+\subsection{Step 4: Weighted Sum of Values}
+
+Finally, compute the output as a weighted combination of values:
+\[
+\text{Output} = \mat{A}\mat{V} \in \R^{n \times d_v}
+\]
+
+For each query $i$, the output is:
+\[
+\vect{o}_i = \sum_{j=1}^{m} a_{ij} \vect{v}_j
+\]
+
+\begin{intuition}
+This is the key insight! Each output is a weighted average of all values, where the weights come from how well the query matched each key.
+
+If query $i$ strongly matches key $j$, then $a_{ij}$ is large, so $\vect{v}_j$ contributes heavily to $\vect{o}_i$.
+\end{intuition}
+
+\section{Concrete Example: Attention in Action}
+
+Let's work through a tiny example with 3 words and dimension 2.
+
+\subsection{Setup}
+
+Consider the sentence: "cat sat mat"
+
+Suppose we have:
+\[
+\mat{Q} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}, \quad
+\mat{K} = \begin{bmatrix} 1 & 0 \\ 0.5 & 0.5 \\ 1 & 1 \end{bmatrix}, \quad
+\mat{V} = \begin{bmatrix} 2 & 0 \\ 0 & 3 \\ 1 & 1 \end{bmatrix}
+\]
+
+\subsection{Step 1: Compute Scores}
+
+\[
+\mat{Q}\mat{K}^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0.5 & 1 \\ 0 & 0.5 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 0.5 & 1 \\ 0 & 0.5 & 1 \\ 1 & 1 & 2 \end{bmatrix}
+\]
+
+\subsection{Step 2: Scale}
+
+With $d_k = 2$, we divide by $\sqrt{2} \approx 1.414$:
+\[
+\frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}} = \begin{bmatrix} 0.707 & 0.354 & 0.707 \\ 0 & 0.354 & 0.707 \\ 0.707 & 0.707 & 1.414 \end{bmatrix}
+\]
+
+\subsection{Step 3: Softmax}
+
+For row 1: $[0.707, 0.354, 0.707]$
+\begin{align*}
+a_{11} &= \frac{e^{0.707}}{e^{0.707} + e^{0.354} + e^{0.707}} \approx 0.364 \\
+a_{12} &= \frac{e^{0.354}}{e^{0.707} + e^{0.354} + e^{0.707}} \approx 0.272 \\
+a_{13} &= \frac{e^{0.707}}{e^{0.707} + e^{0.354} + e^{0.707}} \approx 0.364
+\end{align*}
+
+So attention weights for query 1: $[0.364, 0.272, 0.364]$
+
+\subsection{Step 4: Weighted Sum}
+
+Output for query 1:
+\begin{align*}
+\vect{o}_1 &= 0.364 \begin{bmatrix} 2 \\ 0 \end{bmatrix} + 0.272 \begin{bmatrix} 0 \\ 3 \end{bmatrix} + 0.364 \begin{bmatrix} 1 \\ 1 \end{bmatrix} \\
+&= \begin{bmatrix} 0.728 + 0 + 0.364 \\ 0 + 0.816 + 0.364 \end{bmatrix} = \begin{bmatrix} 1.092 \\ 1.180 \end{bmatrix}
+\end{align*}
+
+\section{Self-Attention: Attending to Yourself}
+
+\subsection{The Key Idea}
+
+In \vocab{self-attention}, the same sequence serves as queries, keys, and values!
+
+\begin{definition}{Self-Attention}{}
+Given input sequence $\mat{X} \in \R^{n \times d}$, we project to Q, K, V:
+\begin{align*}
+\mat{Q} &= \mat{X}\mat{W}^Q \\
+\mat{K} &= \mat{X}\mat{W}^K \\
+\mat{V} &= \mat{X}\mat{W}^V
+\end{align*}
+
+where $\mat{W}^Q, \mat{W}^K \in \R^{d \times d_k}$ and $\mat{W}^V \in \R^{d \times d_v}$ are learned weight matrices.
+
+Then apply attention:
+\[
+\text{SelfAttention}(\mat{X}) = \text{softmax}\left(\frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}}\right)\mat{V}
+\]
+\end{definition}
+
+\begin{intuition}
+Each word asks: "Which other words in this sentence should I pay attention to?"
+
+For example, in "The cat sat on the mat":
+\begin{itemize}
+    \item "sat" might attend to "cat" (who sat?) and "mat" (where?)
+    \item "it" might attend to "cat" (what does "it" refer to?)
+\end{itemize}
+
+The model learns these attention patterns from data!
+\end{intuition}
+
+\section{Multi-Head Attention}
+
+\subsection{The Motivation}
+
+Different heads can learn different types of relationships!
+
+\begin{intuition}
+Think of it like having multiple specialized detectors:
+\begin{itemize}
+    \item Head 1: Finds syntactic relationships (subject-verb)
+    \item Head 2: Finds semantic relationships (synonyms, antonyms)
+    \item Head 3: Finds positional relationships (nearby words)
+    \item Head 4: Finds long-range dependencies
+\end{itemize}
+
+Each head gets to ask different questions about the input!
+\end{intuition}
+
+\subsection{Mathematical Definition}
+
+\begin{definition}{Multi-Head Attention}{}
+Instead of one attention operation, we perform $h$ parallel attention operations:
+
+For head $i$:
+\begin{align*}
+\mat{Q}_i &= \mat{X}\mat{W}_i^Q \\
+\mat{K}_i &= \mat{X}\mat{W}_i^K \\
+\mat{V}_i &= \mat{X}\mat{W}_i^V \\
+\text{head}_i &= \text{Attention}(\mat{Q}_i, \mat{K}_i, \mat{V}_i)
+\end{align*}
+
+Concatenate all heads and project:
+\[
+\text{MultiHead}(\mat{X}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\mat{W}^O
+\]
+
+where $\mat{W}^O \in \R^{hd_v \times d}$ is the output projection.
+\end{definition}
+
+\subsection{Computational Details}
+
+Typical hyperparameters (e.g., GPT-2):
+\begin{itemize}
+    \item Model dimension: $d = 768$
+    \item Number of heads: $h = 12$
+    \item Dimension per head: $d_k = d_v = d/h = 64$
+\end{itemize}
+
+Each head operates in a lower-dimensional space, making computation efficient!
+
+\subsection{Why Multiple Heads Work}
+
+\begin{theorem}{Representation Capacity (Informal)}{}
+Multiple attention heads increase the model's ability to capture different types of relationships simultaneously. With $h$ heads, the model can attend to $h$ different aspects of the context at each position.
+\end{theorem}
+
+\begin{connection}
+In practice, different heads learn remarkably different patterns:
+\begin{itemize}
+    \item Some heads focus on adjacent tokens (local context)
+    \item Some heads track long-range syntactic dependencies
+    \item Some heads identify named entities
+    \item Some heads remain somewhat mysterious!
+\end{itemize}
+
+This specialization emerges naturally from training!
+\end{connection}
+
+\section{Masked Self-Attention (Causal Attention)}
+
+\subsection{The Need for Masking}
+
+In language modeling, we predict the next word. We must prevent the model from "cheating" by looking at future words!
+
+\begin{definition}{Causal Masking}{}
+Modify the attention scores to prevent position $i$ from attending to positions $j > i$:
+\[
+\mat{M}_{ij} = \begin{cases} 0 & \text{if } j \leq i \\ -\infty & \text{if } j > i \end{cases}
+\]
+
+Then:
+\[
+\text{Attention}(\mat{Q}, \mat{K}, \mat{V}) = \text{softmax}\left(\frac{\mat{Q}\mat{K}^\top}{\sqrt{d_k}} + \mat{M}\right)\mat{V}
+\]
+\end{definition}
+
+\begin{intuition}
+The mask sets future positions to $-\infty$ before softmax. After softmax, $e^{-\infty} = 0$, so those positions get zero attention weight.
+
+This ensures the model can only use information from the past when predicting each word!
+\end{intuition}
+
+\subsection{The Causal Mask Matrix}
+
+For sequence length $n = 4$:
+\[
+\mat{M} = \begin{bmatrix}
+0 & -\infty & -\infty & -\infty \\
+0 & 0 & -\infty & -\infty \\
+0 & 0 & 0 & -\infty \\
+0 & 0 & 0 & 0
+\end{bmatrix}
+\]
+
+\begin{example}
+After adding mask and applying softmax, the attention matrix becomes lower triangular:
+\[
+\mat{A} = \begin{bmatrix}
+1 & 0 & 0 & 0 \\
+a_{21} & a_{22} & 0 & 0 \\
+a_{31} & a_{32} & a_{33} & 0 \\
+a_{41} & a_{42} & a_{43} & a_{44}
+\end{bmatrix}
+\]
+
+Token 3 can only attend to tokens 1, 2, and 3 (not 4)!
+\end{example}
+
+\section{Positional Information in Attention}
+
+\subsection{The Problem}
+
+Pure attention has a surprising property: it's \vocab{permutation invariant}!
+
+\begin{warning}
+If you shuffle the input sequence, the attention output (before masking) stays the same! This is because attention only uses dot products, which don't depend on position.
+
+But position matters! "Dog bites man" is very different from "Man bites dog"!
+\end{warning}
+
+\subsection{Solution: Positional Encodings}
+
+Add position information to the input:
+\[
+\mat{X}_{\text{input}} = \mat{X}_{\text{embed}} + \mat{P}
+\]
+
+where $\mat{P} \in \R^{n \times d}$ encodes position.
+
+\subsubsection{Sinusoidal Positional Encoding (Original Transformer)}
+
+\[
+PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)
+\]
+\[
+PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)
+\]
+
+\begin{intuition}
+Different dimensions oscillate at different frequencies. This creates a unique "fingerprint" for each position that the model can learn to interpret.
+
+It also has nice properties: relative positions can be computed as linear functions!
+\end{intuition}
+
+\subsubsection{Learned Positional Embeddings (Modern LLMs)}
+
+Simply learn a position embedding matrix:
+\[
+\mat{P} \in \R^{n_{\max} \times d}
+\]
+
+where $n_{\max}$ is the maximum sequence length.
+
+GPT models use learned positional embeddings—they're simple and work well!
+
+\section{Computational Complexity Analysis}
+
+\subsection{Time and Space Complexity}
+
+For sequence length $n$ and model dimension $d$:
+
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Operation} & \textbf{Time} & \textbf{Memory} \\
+\hline
+Computing $\mat{Q}, \mat{K}, \mat{V}$ & $O(n d^2)$ & $O(nd)$ \\
+Computing $\mat{Q}\mat{K}^\top$ & $O(n^2 d)$ & $O(n^2)$ \\
+Softmax & $O(n^2)$ & $O(n^2)$ \\
+Computing $\mat{A}\mat{V}$ & $O(n^2 d)$ & $O(nd)$ \\
+\hline
+\textbf{Total} & $O(n^2 d + nd^2)$ & $O(n^2 + nd)$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{The Quadratic Bottleneck}
+
+\begin{warning}
+Attention is $O(n^2)$ in both time and memory! This becomes prohibitive for long sequences.
+
+For $n = 100,000$ (a long document), we need to store a $100,000 \times 100,000$ attention matrix—that's 10 billion floats or 40GB just for attention weights!
+\end{warning}
+
+\begin{connection}
+This quadratic cost is why modern LLMs have limited context windows:
+\begin{itemize}
+    \item GPT-3: 2,048 tokens
+    \item GPT-4: 8,192 or 32,768 tokens
+    \item Claude 2: 100,000 tokens (uses tricks!)
+\end{itemize}
+
+Many recent papers propose efficient attention variants to reduce this cost.
+\end{connection}
+
+\section{Variants of Attention}
+
+\subsection{Cross-Attention}
+
+Queries from one sequence, keys/values from another:
+\[
+\text{CrossAttention}(\mat{X}_1, \mat{X}_2) = \text{Attention}(\mat{X}_1\mat{W}^Q, \mat{X}_2\mat{W}^K, \mat{X}_2\mat{W}^V)
+\]
+
+\begin{connection}
+Used in:
+\begin{itemize}
+    \item Encoder-decoder models (machine translation)
+    \item Vision-language models (image attends to text)
+    \item Retrieval-augmented generation (attend to retrieved documents)
+\end{itemize}
+\end{connection}
+
+\subsection{Local Attention}
+
+Only attend to nearby tokens (window of size $w$):
+\[
+\text{Attention only between } [i-w, i+w]
+\]
+
+Reduces complexity to $O(nw)$ where $w \ll n$.
+
+\subsection{Sparse Attention}
+
+Use sparse attention patterns:
+\begin{itemize}
+    \item \textbf{Strided attention}: Attend to every $k$-th token
+    \item \textbf{Fixed patterns}: Pre-defined sparse patterns
+    \item \textbf{Learned sparsity}: Learn which connections to keep
+\end{itemize}
+
+\subsection{Linear Attention}
+
+Approximate attention with linear complexity:
+\[
+\text{Attention} \approx \phi(\mat{Q}) (\phi(\mat{K})^\top \mat{V})
+\]
+
+where $\phi$ is a feature map. By associativity: $O(nd^2)$ instead of $O(n^2d)$!
+
+\section{Attention Visualization and Interpretability}
+
+\subsection{What Do Attention Weights Tell Us?}
+
+We can visualize $\mat{A}$ as a heatmap showing which tokens attend to which.
+
+\begin{example}
+Sentence: "The cat sat on the mat"
+
+Token "sat" might have attention weights:
+\[
+[0.1, 0.5, 0.15, 0.1, 0.1, 0.05]
+\]
+
+Attending most to "cat" (index 2)—learning subject-verb relationship!
+\end{example}
+
+\subsection{Caveats}
+
+\begin{warning}
+Attention weights are NOT exactly "what the model is thinking":
+\begin{itemize}
+    \item Multiple heads might show different patterns
+    \item Attention is just one part of the computation
+    \item High attention doesn't always mean high influence
+    \item Deeper layers show more complex patterns
+\end{itemize}
+
+Attention visualization is useful but shouldn't be over-interpreted!
+\end{warning}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Manual Attention}
+
+Given:
+\[
+\mat{Q} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
+\mat{K} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
+\mat{V} = \begin{bmatrix} 2 & 3 \\ 4 & 5 \end{bmatrix}
+\]
+
+Compute attention output with $d_k = 2$ (show all steps).
+
+\subsection{Problem 2: Complexity}
+
+A model has:
+\begin{itemize}
+    \item Sequence length: $n = 512$
+    \item Model dimension: $d = 1024$
+    \item Number of heads: $h = 16$
+\end{itemize}
+
+Calculate:
+\begin{enumerate}[label=(\alph*)]
+    \item FLOPs for one attention layer
+    \item Memory for storing attention matrix
+    \item How much faster if we use window size $w = 64$?
+\end{enumerate}
+
+\subsection{Problem 3: Causal Masking}
+
+Why is causal masking necessary for language modeling but not for BERT-style models?
+
+\subsection{Problem 4: Positional Encoding}
+
+If we remove positional encodings, give three examples of sentences that would have identical representations despite different meanings.
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Attention} computes weighted averages based on query-key similarity
+    \item \textbf{Scaled dot-product} with softmax is the core attention mechanism
+    \item \textbf{Self-attention} allows each token to attend to all others
+    \item \textbf{Multi-head attention} learns multiple types of relationships in parallel
+    \item \textbf{Causal masking} prevents looking at future tokens (autoregressive models)
+    \item \textbf{Positional encodings} inject position information
+    \item \textbf{Quadratic complexity} is the main limitation for long sequences
+    \item Attention is the key innovation that made modern LLMs possible
+\end{itemize}
+
+\begin{connection}
+You now understand the mathematical heart of transformers! Attention mechanisms are what give LLMs their power to understand context, resolve ambiguity, and capture long-range dependencies. In the next chapter, we'll put attention together with feedforward networks, layer normalization, and residual connections to build a complete transformer architecture. The pieces are coming together!
+\end{connection}

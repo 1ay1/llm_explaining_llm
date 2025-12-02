@@ -1,0 +1,467 @@
+\chapter{Probability Theory: Mathematics of Uncertainty}
+
+\section{Introduction: Why Probability in AI?}
+
+Neural networks don't give us certainty—they give us probabilities. When an LLM generates text, it's sampling from a probability distribution over possible next words. Understanding probability is understanding how these models think!
+
+\begin{intuition}
+Probability is the mathematics of uncertainty. In the real world, we rarely know things for certain:
+\begin{itemize}
+    \item Will it rain tomorrow? (Uncertain)
+    \item What's the next word in this sentence? (Multiple possibilities)
+    \item Is this email spam? (Probabilistic classification)
+\end{itemize}
+
+Machine learning embraces this uncertainty mathematically.
+\end{intuition}
+
+\begin{connection}
+In LLMs, probability is everywhere:
+\begin{itemize}
+    \item \textbf{Softmax outputs}: Probability distribution over vocabulary
+    \item \textbf{Sampling}: Generating text by sampling from distributions
+    \item \textbf{Training}: Maximizing likelihood of training data
+    \item \textbf{Uncertainty estimation}: How confident is the model?
+\end{itemize}
+\end{connection}
+
+\section{Basic Probability Concepts}
+
+\subsection{Sample Space and Events}
+
+\begin{definition}{Sample Space}{}
+The \vocab{sample space} $\Omega$ is the set of all possible outcomes of a random experiment.
+
+An \vocab{event} $A$ is a subset of the sample space.
+\end{definition}
+
+\begin{example}
+\begin{itemize}
+    \item Rolling a die: $\Omega = \{1, 2, 3, 4, 5, 6\}$
+    \item Flipping a coin: $\Omega = \{\text{H}, \text{T}\}$
+    \item Predicting next word: $\Omega = \{\text{all words in vocabulary}\}$
+\end{itemize}
+\end{example}
+
+\subsection{Probability Axioms}
+
+\begin{definition}{Probability Measure}{}
+A probability function $P: \mathcal{F} \to [0,1]$ satisfies:
+\begin{enumerate}
+    \item \textbf{Non-negativity}: $P(A) \geq 0$ for all events $A$
+    \item \textbf{Normalization}: $P(\Omega) = 1$
+    \item \textbf{Additivity}: For disjoint events $A_1, A_2, \ldots$:
+    \[
+    P\left(\bigcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} P(A_i)
+    \]
+\end{enumerate}
+\end{definition}
+
+\begin{intuition}
+Think of probability as "fraction of the whole":
+\begin{itemize}
+    \item $P(A) = 0$: Event never happens
+    \item $P(A) = 1$: Event always happens
+    \item $P(A) = 0.5$: Event happens half the time
+\end{itemize}
+\end{intuition}
+
+\subsection{Basic Rules}
+
+\begin{theorem}{Complement Rule}{}
+\[
+P(A^c) = 1 - P(A)
+\]
+where $A^c$ is the complement of $A$ (all outcomes not in $A$).
+\end{theorem}
+
+\begin{theorem}{Addition Rule}{}
+For any events $A$ and $B$:
+\[
+P(A \cup B) = P(A) + P(B) - P(A \cap B)
+\]
+\end{theorem}
+
+\begin{example}
+Probability of rolling an even number OR a number greater than 4:
+\begin{align*}
+A &= \{2, 4, 6\}, \quad P(A) = 1/2 \\
+B &= \{5, 6\}, \quad P(B) = 1/3 \\
+A \cap B &= \{6\}, \quad P(A \cap B) = 1/6 \\
+P(A \cup B) &= 1/2 + 1/3 - 1/6 = 2/3
+\end{align*}
+\end{example}
+
+\section{Conditional Probability}
+
+\subsection{Definition}
+
+\begin{definition}{Conditional Probability}{}
+The probability of $A$ given that $B$ has occurred:
+\[
+P(A | B) = \frac{P(A \cap B)}{P(B)}
+\]
+provided $P(B) > 0$.
+\end{definition}
+
+\begin{intuition}
+$P(A|B)$ means: "Now that I know $B$ happened, what's the probability of $A$?"
+
+It's like zooming in—$B$ becomes our new sample space!
+\end{intuition}
+
+\begin{example}
+Drawing cards:
+\begin{itemize}
+    \item $P(\text{Ace}) = 4/52$
+    \item $P(\text{Ace} | \text{Spade}) = 1/13$ (only 13 spades, 1 is ace)
+    \item $P(\text{Spade} | \text{Ace}) = 1/4$ (4 aces, 1 is spade)
+\end{itemize}
+\end{example}
+
+\subsection{Chain Rule}
+
+\begin{theorem}{Chain Rule of Probability}{}
+\[
+P(A \cap B) = P(A | B) P(B) = P(B | A) P(A)
+\]
+
+More generally:
+\[
+P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) P(A_2|A_1) P(A_3|A_1 \cap A_2) \cdots
+\]
+\end{theorem}
+
+\begin{connection}
+\textbf{This is how language models work!}
+
+Probability of a sentence is:
+\begin{align*}
+P(\text{``The cat sat on mat''}) &= P(\text{The}) \cdot P(\text{cat}|\text{The}) \\
+&\quad \cdot P(\text{sat}|\text{The cat}) \cdots
+\end{align*}
+
+LLMs model $P(\text{next word}|\text{previous words})$!
+\end{connection}
+
+\section{Independence}
+
+\subsection{Definition}
+
+\begin{definition}{Independence}{}
+Events $A$ and $B$ are \vocab{independent} if:
+\[
+P(A \cap B) = P(A) \cdot P(B)
+\]
+
+Equivalently: $P(A | B) = P(A)$ (knowing $B$ doesn't change probability of $A$)
+\end{definition}
+
+\begin{example}
+\begin{itemize}
+    \item \textbf{Independent}: Two coin flips
+    \item \textbf{Dependent}: Drawing cards without replacement
+    \item \textbf{Dependent}: "It's raining" and "ground is wet"
+\end{itemize}
+\end{example}
+
+\subsection{Conditional Independence}
+
+\begin{definition}{Conditional Independence}{}
+$A$ and $B$ are conditionally independent given $C$ if:
+\[
+P(A \cap B | C) = P(A | C) \cdot P(B | C)
+\]
+\end{definition}
+
+\begin{connection}
+Many machine learning models assume conditional independence to simplify computation. For example, Naive Bayes assumes features are independent given the class label.
+\end{connection}
+
+\section{Bayes' Theorem}
+
+\subsection{The Most Important Theorem in AI}
+
+\begin{theorem}{Bayes' Theorem}{}
+\[
+P(A | B) = \frac{P(B | A) P(A)}{P(B)}
+\]
+
+Or equivalently:
+\[
+P(A | B) = \frac{P(B | A) P(A)}{\sum_i P(B | A_i) P(A_i)}
+\]
+where $A_i$ partitions the sample space.
+\end{theorem}
+
+\begin{intuition}
+Bayes' theorem lets us flip conditional probabilities! We can go from $P(B|A)$ to $P(A|B)$.
+
+In machine learning terms:
+\[
+P(\text{hypothesis} | \text{data}) = \frac{P(\text{data} | \text{hypothesis}) P(\text{hypothesis})}{P(\text{data})}
+\]
+
+\begin{itemize}
+    \item $P(\text{hypothesis} | \text{data})$: \textbf{Posterior} (what we want)
+    \item $P(\text{data} | \text{hypothesis})$: \textbf{Likelihood} (how well hypothesis explains data)
+    \item $P(\text{hypothesis})$: \textbf{Prior} (belief before seeing data)
+    \item $P(\text{data})$: \textbf{Evidence} (normalizing constant)
+\end{itemize}
+\end{intuition}
+
+\begin{example}
+Medical diagnosis:
+\begin{itemize}
+    \item $P(\text{disease}) = 0.01$ (1\% of population has disease)
+    \item $P(\text{positive test} | \text{disease}) = 0.95$ (95\% sensitivity)
+    \item $P(\text{positive test} | \text{no disease}) = 0.05$ (5\% false positive)
+\end{itemize}
+
+You test positive. What's $P(\text{disease} | \text{positive test})$?
+
+\begin{align*}
+P(D | +) &= \frac{P(+ | D) P(D)}{P(+)} \\
+&= \frac{P(+ | D) P(D)}{P(+ | D)P(D) + P(+ | D^c)P(D^c)} \\
+&= \frac{0.95 \times 0.01}{0.95 \times 0.01 + 0.05 \times 0.99} \\
+&= \frac{0.0095}{0.0095 + 0.0495} = 0.161
+\end{align*}
+
+Only 16.1\%! Even with a positive test, disease is unlikely because it's rare.
+\end{example}
+
+\section{Random Variables}
+
+\subsection{Definition}
+
+\begin{definition}{Random Variable}{}
+A \vocab{random variable} is a function $X: \Omega \to \mathbb{R}$ that assigns a numerical value to each outcome.
+\end{definition}
+
+\begin{example}
+\begin{itemize}
+    \item Roll a die: $X = \text{number shown}$
+    \item Flip 3 coins: $X = \text{number of heads}$
+    \item Sample a word: $X = \text{word embedding vector}$
+\end{itemize}
+\end{example}
+
+\subsection{Discrete Random Variables}
+
+For discrete $X$, we have a \vocab{probability mass function} (PMF):
+\[
+p_X(x) = P(X = x)
+\]
+
+Properties:
+\begin{itemize}
+    \item $p_X(x) \geq 0$ for all $x$
+    \item $\sum_x p_X(x) = 1$
+\end{itemize}
+
+\begin{example}
+Fair die: $p_X(k) = 1/6$ for $k \in \{1, 2, 3, 4, 5, 6\}$
+\end{example}
+
+\subsection{Continuous Random Variables}
+
+For continuous $X$, we have a \vocab{probability density function} (PDF):
+\[
+f_X(x)
+\]
+
+Properties:
+\begin{itemize}
+    \item $f_X(x) \geq 0$ for all $x$
+    \item $\int_{-\infty}^{\infty} f_X(x) dx = 1$
+    \item $P(a \leq X \leq b) = \int_a^b f_X(x) dx$
+\end{itemize}
+
+\begin{warning}
+For continuous $X$: $P(X = x) = 0$ for any specific $x$! Only intervals have non-zero probability.
+\end{warning}
+
+\section{Expectation and Variance}
+
+\subsection{Expected Value}
+
+\begin{definition}{Expectation}{}
+The \vocab{expected value} (or mean) is:
+
+\textbf{Discrete:} $\expect{X} = \sum_x x \cdot p_X(x)$
+
+\textbf{Continuous:} $\expect{X} = \int_{-\infty}^{\infty} x \cdot f_X(x) dx$
+\end{definition}
+
+\begin{intuition}
+The expected value is the "average" or "center" of the distribution. It's the long-run average if you repeat the experiment many times.
+\end{intuition}
+
+\begin{example}
+Rolling a die:
+\[
+\expect{X} = 1 \cdot \frac{1}{6} + 2 \cdot \frac{1}{6} + \cdots + 6 \cdot \frac{1}{6} = \frac{21}{6} = 3.5
+\]
+\end{example}
+
+\subsection{Properties of Expectation}
+
+\begin{theorem}{Linearity of Expectation}{}
+\begin{itemize}
+    \item $\expect{aX + b} = a\expect{X} + b$
+    \item $\expect{X + Y} = \expect{X} + \expect{Y}$ (even if not independent!)
+\end{itemize}
+\end{theorem}
+
+\subsection{Variance}
+
+\begin{definition}{Variance}{}
+The \vocab{variance} measures spread:
+\[
+\var{X} = \expect{(X - \expect{X})^2} = \expect{X^2} - (\expect{X})^2
+\]
+
+The \vocab{standard deviation} is: $\sigma_X = \sqrt{\var{X}}$
+\end{definition}
+
+\begin{intuition}
+Variance tells us how much values typically deviate from the mean. High variance = more spread out.
+\end{intuition}
+
+\begin{theorem}{Variance Properties}{}
+\begin{itemize}
+    \item $\var{aX + b} = a^2 \var{X}$ (constants shift and scale)
+    \item If $X$ and $Y$ are independent: $\var{X + Y} = \var{X} + \var{Y}$
+\end{itemize}
+\end{theorem}
+
+\section{Common Probability Distributions}
+
+\subsection{Bernoulli Distribution}
+
+Single trial with two outcomes (success/failure):
+\[
+X \sim \text{Bernoulli}(p)
+\]
+\[
+P(X = 1) = p, \quad P(X = 0) = 1 - p
+\]
+\[
+\expect{X} = p, \quad \var{X} = p(1-p)
+\]
+
+\begin{connection}
+Used for binary classification! Predicting probability of class 1.
+\end{connection}
+
+\subsection{Categorical Distribution}
+
+Generalization to $k$ outcomes:
+\[
+X \sim \text{Categorical}(p_1, \ldots, p_k)
+\]
+\[
+P(X = i) = p_i, \quad \sum_{i=1}^k p_i = 1
+\]
+
+\begin{connection}
+\textbf{This is what LLMs output!} The softmax layer produces a categorical distribution over the vocabulary:
+\[
+P(\text{next word} = w_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}
+\]
+\end{connection}
+
+\subsection{Gaussian (Normal) Distribution}
+
+The most important continuous distribution:
+\[
+X \sim \mathcal{N}(\mu, \sigma^2)
+\]
+\[
+f_X(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)
+\]
+
+Properties:
+\begin{itemize}
+    \item $\expect{X} = \mu$
+    \item $\var{X} = \sigma^2$
+    \item Bell-shaped, symmetric around $\mu$
+\end{itemize}
+
+\begin{connection}
+Gaussians are everywhere in ML:
+\begin{itemize}
+    \item Weight initialization
+    \item Noise models
+    \item Variational autoencoders
+    \item Gaussian processes
+\end{itemize}
+\end{connection}
+
+\section{Joint and Marginal Distributions}
+
+\subsection{Joint Distribution}
+
+For multiple random variables $X$ and $Y$:
+\[
+p_{X,Y}(x, y) = P(X = x, Y = y)
+\]
+
+\subsection{Marginal Distribution}
+
+To get distribution of $X$ alone, sum over $Y$:
+\[
+p_X(x) = \sum_y p_{X,Y}(x, y)
+\]
+
+\begin{intuition}
+Marginalization "integrates out" variables we don't care about.
+\end{intuition}
+
+\subsection{Conditional Distribution}
+
+\[
+p_{X|Y}(x|y) = \frac{p_{X,Y}(x, y)}{p_Y(y)}
+\]
+
+\section{Maximum Likelihood Estimation}
+
+\subsection{The Principle}
+
+Given data $\mathcal{D} = \{x_1, \ldots, x_n\}$, find parameters $\theta$ that maximize the likelihood:
+\[
+\hat{\theta} = \argmax_{\theta} P(\mathcal{D} | \theta) = \argmax_{\theta} \prod_{i=1}^n P(x_i | \theta)
+\]
+
+Usually we maximize log-likelihood:
+\[
+\hat{\theta} = \argmax_{\theta} \sum_{i=1}^n \log P(x_i | \theta)
+\]
+
+\begin{connection}
+\textbf{This is how neural networks are trained!}
+
+The loss function is negative log-likelihood:
+\[
+\mathcal{L}(\theta) = -\sum_{i=1}^n \log P(y_i | x_i, \theta)
+\]
+
+Minimizing loss = maximizing likelihood = making training data most probable!
+\end{connection}
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Probability} quantifies uncertainty mathematically
+    \item \textbf{Conditional probability} updates beliefs given information
+    \item \textbf{Bayes' theorem} is fundamental to inference and learning
+    \item \textbf{Random variables} assign numerical values to random outcomes
+    \item \textbf{Expectation} is the average, \textbf{variance} measures spread
+    \item \textbf{Common distributions} (Bernoulli, Categorical, Gaussian) model different scenarios
+    \item \textbf{Maximum likelihood} is the principle behind most ML training
+    \item LLMs are fundamentally probabilistic models!
+\end{itemize}
+
+\begin{connection}
+Probability theory is the language of machine learning. Every prediction an LLM makes is a probability distribution. Every training step maximizes likelihood. Understanding probability means understanding what these models are really doing under the hood. In the next chapters, we'll build on this foundation to understand information theory, entropy, and why cross-entropy loss works so well!
+\end{connection}

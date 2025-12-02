@@ -1,0 +1,118 @@
+name: Build LaTeX PDF
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          latexmk_use_xelatex: false
+          latexmk_shell_escape: true
+          args: -pdf -interaction=nonstopmode -halt-on-error
+          extra_system_packages: |
+            texlive-fonts-extra
+            texlive-science
+
+      - name: Rename PDF with version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(git rev-parse --short HEAD)
+          fi
+          cp main.pdf "Mathematics-of-LLMs-${VERSION}.pdf"
+          cp main.pdf "Mathematics-of-LLMs-latest.pdf"
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathematics-of-llms-pdf
+          path: |
+            Mathematics-of-LLMs-*.pdf
+          retention-days: 30
+
+      - name: Get PDF page count
+        id: pagecount
+        run: |
+          sudo apt-get update && sudo apt-get install -y poppler-utils
+          PAGES=$(pdfinfo main.pdf | grep Pages | awk '{print $2}')
+          echo "pages=$PAGES" >> $GITHUB_OUTPUT
+          echo "📖 PDF compiled successfully with $PAGES pages"
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            Mathematics-of-LLMs-*.pdf
+          body: |
+            ## 📚 The Mathematics of Large Language Models
+
+            **Release ${{ github.ref_name }}**
+
+            📖 **${{ steps.pagecount.outputs.pages }} pages** of comprehensive mathematical foundations for understanding LLMs.
+
+            ### What's Inside
+            - 🔢 Linear Algebra: Vectors, Matrices, Eigenvalues, SVD
+            - 📈 Calculus: Derivatives, Gradients, Optimization
+            - 🎲 Probability & Statistics: Distributions, Inference
+            - 📊 Information Theory: Entropy, Cross-Entropy, KL Divergence
+            - 🧠 Neural Networks: Architecture, Backpropagation
+            - 🤖 Transformers: Attention Mechanisms, LLM Training
+
+            ### Download
+            Download `Mathematics-of-LLMs-${{ github.ref_name }}.pdf` below.
+
+            ---
+            *Written by Claude (Anthropic) - An AI explaining how AI works* 🤖✨
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: latest
+          name: Latest Build
+          files: Mathematics-of-LLMs-latest.pdf
+          body: |
+            ## 📚 Latest Build
+
+            This is an automatically updated release from the latest commit on main.
+
+            📖 **${{ steps.pagecount.outputs.pages }} pages**
+
+            🔗 Commit: ${{ github.sha }}
+            📅 Built: ${{ github.event.head_commit.timestamp }}
+
+            ---
+            *For stable releases, see the versioned releases.*
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

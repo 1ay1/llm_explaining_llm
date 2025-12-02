@@ -1,0 +1,221 @@
+\chapter{Statistical Inference and Estimation}
+
+\section{Introduction: Learning from Data}
+
+Statistics is the science of learning from data in the presence of uncertainty. In machine learning, we observe training data and want to infer patterns that generalize to unseen data. This chapter covers the mathematical foundations of statistical inference that underpin all of machine learning.
+
+\begin{intuition}
+Think of training an LLM: We observe billions of text samples (data) and want to learn the underlying patterns of language (the true distribution). Statistical inference gives us the tools to do this rigorously, quantifying our uncertainty and making optimal decisions.
+\end{intuition}
+
+\begin{connection}
+Every aspect of training LLMs involves statistical inference:
+\begin{itemize}
+    \item \textbf{Parameter estimation}: Finding the best weights
+    \item \textbf{Confidence intervals}: Uncertainty in predictions
+    \item \textbf{Hypothesis testing}: Does this architectural change help?
+    \item \textbf{Bayesian methods}: Incorporating prior knowledge
+\end{itemize}
+\end{connection}
+
+\section{Point Estimation}
+
+\subsection{What is an Estimator?}
+
+An \vocab{estimator} is a function of the data that produces an estimate of an unknown parameter.
+
+\begin{definition}{Estimator}{}
+Given data $\vect{x} = (x_1, \ldots, x_n)$ drawn from distribution $P_\theta$, an estimator $\hat{\theta}$ is a function:
+\[
+\hat{\theta} = \hat{\theta}(\vect{x})
+\]
+that estimates the true parameter $\theta$.
+\end{definition}
+
+\begin{example}
+Common estimators:
+\begin{itemize}
+    \item Sample mean: $\bar{x} = \frac{1}{n}\sum_{i=1}^n x_i$ estimates $\mu = \mathbb{E}[X]$
+    \item Sample variance: $s^2 = \frac{1}{n-1}\sum_{i=1}^n (x_i - \bar{x})^2$ estimates $\sigma^2 = \text{Var}(X)$
+    \item Maximum likelihood estimator: $\hat{\theta}_{MLE}$ (discussed below)
+\end{itemize}
+\end{example}
+
+\subsection{Properties of Estimators}
+
+\subsubsection{Bias}
+
+\begin{definition}{Bias}{}
+The bias of an estimator $\hat{\theta}$ is:
+\[
+\text{Bias}(\hat{\theta}) = \mathbb{E}[\hat{\theta}] - \theta
+\]
+
+An estimator is \vocab{unbiased} if $\mathbb{E}[\hat{\theta}] = \theta$.
+\end{definition}
+
+\begin{intuition}
+An unbiased estimator is correct on average. If you repeatedly estimate from different datasets, the average of your estimates equals the true value.
+\end{intuition}
+
+\subsubsection{Variance}
+
+The variance measures how much estimates vary across different datasets:
+\[
+\text{Var}(\hat{\theta}) = \mathbb{E}[(\hat{\theta} - \mathbb{E}[\hat{\theta}])^2]
+\]
+
+\begin{intuition}
+Low variance means the estimator is consistent—different datasets give similar estimates.
+\end{intuition}
+
+\subsubsection{Mean Squared Error (MSE)}
+
+\begin{definition}{Mean Squared Error}{}
+\[
+\text{MSE}(\hat{\theta}) = \mathbb{E}[(\hat{\theta} - \theta)^2] = \text{Bias}(\hat{\theta})^2 + \text{Var}(\hat{\theta})
+\]
+\end{definition}
+
+\begin{intuition}
+The bias-variance decomposition! MSE captures both systematic error (bias) and random error (variance).
+
+This is the famous bias-variance tradeoff in machine learning!
+\end{intuition}
+
+\section{Maximum Likelihood Estimation (MLE)}
+
+MLE is one of the most important concepts in all of statistics and machine learning.
+
+\subsection{The Likelihood Function}
+
+\begin{definition}{Likelihood Function}{}
+Given data $\vect{x} = (x_1, \ldots, x_n)$ and parametric model $P_\theta$, the likelihood is:
+\[
+\mathcal{L}(\theta | \vect{x}) = P(\vect{x} | \theta) = \prod_{i=1}^n p(x_i | \theta)
+\]
+(assuming i.i.d. data)
+\end{definition}
+
+\begin{intuition}
+The likelihood asks: "Given this parameter value $\theta$, how likely was it to observe this data?"
+
+Note: We're treating $\theta$ as the variable, not $\vect{x}$!
+\end{intuition}
+
+\subsection{Maximum Likelihood Estimator}
+
+\begin{definition}{Maximum Likelihood Estimator (MLE)}{}
+\[
+\hat{\theta}_{MLE} = \argmax_\theta \mathcal{L}(\theta | \vect{x}) = \argmax_\theta \log \mathcal{L}(\theta | \vect{x})
+\]
+\end{definition}
+
+We usually maximize the log-likelihood (it's easier and equivalent):
+\[
+\ell(\theta) = \log \mathcal{L}(\theta) = \sum_{i=1}^n \log p(x_i | \theta)
+\]
+
+\begin{example}
+Data: $x_1, \ldots, x_n \sim \mathcal{N}(\mu, \sigma^2)$ with known $\sigma^2$, unknown $\mu$.
+
+Likelihood:
+\[
+\mathcal{L}(\mu) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(x_i-\mu)^2}{2\sigma^2}\right)
+\]
+
+Log-likelihood:
+\[
+\ell(\mu) = -\frac{n}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_{i=1}^n(x_i-\mu)^2
+\]
+
+Maximize by setting derivative to zero:
+\[
+\frac{d\ell}{d\mu} = \frac{1}{\sigma^2}\sum_{i=1}^n(x_i-\mu) = 0
+\]
+
+Solution: $\hat{\mu}_{MLE} = \frac{1}{n}\sum_{i=1}^n x_i = \bar{x}$
+
+The sample mean is the MLE!
+\end{example}
+
+\begin{connection}
+\textbf{Training neural networks is MLE!}
+
+Given training data $(x_i, y_i)$ and model $p(y|x; \theta)$, we maximize:
+\[
+\max_\theta \sum_{i=1}^n \log p(y_i | x_i; \theta)
+\]
+
+This is exactly MLE! Minimizing cross-entropy loss = maximizing log-likelihood.
+\end{connection}
+
+\section{Bayesian Inference}
+
+\subsection{The Bayesian Paradigm}
+
+In Bayesian inference, parameters are random variables with distributions!
+
+\begin{definition}{Bayes' Theorem for Parameters}{}
+\[
+p(\theta | \vect{x}) = \frac{p(\vect{x} | \theta) p(\theta)}{p(\vect{x})}
+\]
+
+\begin{itemize}
+    \item $p(\theta)$: \vocab{Prior} - our belief before seeing data
+    \item $p(\vect{x} | \theta)$: \vocab{Likelihood} - how likely is the data given $\theta$
+    \item $p(\theta | \vect{x})$: \vocab{Posterior} - our belief after seeing data
+    \item $p(\vect{x})$: \vocab{Evidence} or marginal likelihood
+\end{itemize}
+\end{definition}
+
+\begin{intuition}
+Bayesian inference updates beliefs:
+\[
+\text{Posterior} \propto \text{Likelihood} \times \text{Prior}
+\]
+
+We start with prior knowledge, observe data, and update to the posterior.
+\end{intuition}
+
+\subsection{Maximum A Posteriori (MAP) Estimation}
+
+\begin{definition}{MAP Estimator}{}
+\[
+\hat{\theta}_{MAP} = \argmax_\theta p(\theta | \vect{x}) = \argmax_\theta [p(\vect{x} | \theta) p(\theta)]
+\]
+\end{definition}
+
+\begin{example}
+If prior is $\theta \sim \mathcal{N}(0, \tau^2)$ and likelihood is Gaussian:
+
+\[
+\hat{\theta}_{MAP} = \argmax_\theta \left[\log p(\vect{x}|\theta) - \frac{\theta^2}{2\tau^2}\right]
+\]
+
+The prior term $-\frac{\theta^2}{2\tau^2}$ acts as L2 regularization!
+\end{example}
+
+\begin{connection}
+\textbf{Regularization IS Bayesian inference!}
+
+\begin{itemize}
+    \item L2 regularization = Gaussian prior
+    \item L1 regularization = Laplace prior
+    \item Weight decay = MAP estimation with Gaussian prior
+\end{itemize}
+\end{connection}
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Point estimation} finds single best parameter values
+    \item \textbf{MLE} is the foundation of neural network training
+    \item \textbf{Bayesian inference} incorporates prior knowledge and uncertainty
+    \item \textbf{MAP estimation} connects regularization to Bayesian priors
+    \item Understanding these concepts explains why we train models the way we do
+\end{itemize}
+
+\begin{connection}
+Statistical inference provides the theoretical foundation for learning from data. Every time you train an LLM, you're performing approximate maximum likelihood estimation on billions of parameters. The math we've covered explains why cross-entropy loss, regularization, and other training techniques work!
+\end{connection}

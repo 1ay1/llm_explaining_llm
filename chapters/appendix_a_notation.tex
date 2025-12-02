@@ -1,0 +1,245 @@
+\chapter{Notation Reference}
+
+This appendix summarizes the mathematical notation used throughout the book.
+
+\section{General Notation}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$a, b, c$ & Scalars (lowercase italic) \\
+$\vect{x}, \vect{y}, \vect{z}$ & Vectors (lowercase bold) \\
+$\mat{A}, \mat{B}, \mat{W}$ & Matrices (uppercase bold) \\
+$\mathcal{X}, \mathcal{D}$ & Sets (calligraphic) \\
+$\R$ & Real numbers \\
+$\R^n$ & $n$-dimensional real vector space \\
+$\R^{m \times n}$ & Space of $m \times n$ real matrices \\
+$\N$ & Natural numbers \\
+$\Z$ & Integers \\
+$\mathbb{E}[X]$ & Expected value of $X$ \\
+$\text{Var}(X)$ & Variance of $X$ \\
+$\prob{X}$ & Probability of event $X$ \\
+\hline
+\end{tabular}
+
+\section{Linear Algebra}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\vect{x} \cdot \vect{y}$ & Dot product \\
+$\inner{\vect{x}}{\vect{y}}$ & Inner product \\
+$\norm{\vect{x}}$ & Norm of vector $\vect{x}$ \\
+$\norm{\vect{x}}_2$ & L2 (Euclidean) norm \\
+$\norm{\mat{A}}_F$ & Frobenius norm of matrix $\mat{A}$ \\
+$\mat{A}\trans$ & Transpose of matrix $\mat{A}$ \\
+$\mat{A}^{-1}$ & Inverse of matrix $\mat{A}$ \\
+$\text{tr}(\mat{A})$ & Trace of matrix $\mat{A}$ \\
+$\det(\mat{A})$ & Determinant of matrix $\mat{A}$ \\
+$\text{rank}(\mat{A})$ & Rank of matrix $\mat{A}$ \\
+$\lambda$ & Eigenvalue \\
+$\vect{v}$ & Eigenvector \\
+$\mat{I}$ & Identity matrix \\
+$\mat{0}$ & Zero matrix \\
+$\odot$ & Element-wise (Hadamard) product \\
+\hline
+\end{tabular}
+
+\section{Calculus}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\frac{df}{dx}$ & Derivative of $f$ with respect to $x$ \\
+$f'(x)$ & Derivative of $f$ at $x$ \\
+$\frac{\partial f}{\partial x}$ & Partial derivative \\
+$\nabla f$ & Gradient of $f$ \\
+$\nabla_{\vect{x}} f$ & Gradient with respect to $\vect{x}$ \\
+$\mat{H}_f$ & Hessian matrix of $f$ \\
+$\frac{\partial \vect{f}}{\partial \vect{x}}$ & Jacobian matrix \\
+$\int f(x) dx$ & Integral of $f$ \\
+$\lim_{x \to a} f(x)$ & Limit as $x$ approaches $a$ \\
+\hline
+\end{tabular}
+
+\section{Probability and Statistics}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$P(A)$ & Probability of event $A$ \\
+$P(A|B)$ & Conditional probability of $A$ given $B$ \\
+$p(x)$ & Probability mass/density function \\
+$\mathbb{E}[X]$ & Expected value of $X$ \\
+$\expect{X}$ & Expected value of $X$ (alternative) \\
+$\text{Var}(X)$ & Variance of $X$ \\
+$\var{X}$ & Variance of $X$ (alternative) \\
+$\text{Cov}(X, Y)$ & Covariance of $X$ and $Y$ \\
+$X \sim P$ & $X$ is distributed according to $P$ \\
+$\mathcal{N}(\mu, \sigma^2)$ & Normal distribution \\
+$\text{Bernoulli}(p)$ & Bernoulli distribution \\
+$\text{Categorical}(\vect{p})$ & Categorical distribution \\
+$H(X)$ & Entropy of $X$ \\
+$H(p, q)$ & Cross-entropy between $p$ and $q$ \\
+$D_{KL}(p \| q)$ & KL divergence from $q$ to $p$ \\
+$I(X; Y)$ & Mutual information between $X$ and $Y$ \\
+\hline
+\end{tabular}
+
+\section{Machine Learning}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\mathcal{L}$ & Loss function \\
+$\mathcal{L}(\vect{w})$ & Loss as function of weights $\vect{w}$ \\
+$\vect{w}, \theta$ & Model parameters/weights \\
+$\vect{x}$ & Input data \\
+$y, \vect{y}$ & Target/label \\
+$\hat{y}, \hat{\vect{y}}$ & Predicted output \\
+$\vect{h}$ & Hidden representation/activation \\
+$\vect{z}$ & Pre-activation values \\
+$\mat{W}$ & Weight matrix \\
+$\vect{b}$ & Bias vector \\
+$\sigma(\cdot)$ & Activation function (often sigmoid) \\
+$\text{ReLU}(x)$ & Rectified Linear Unit \\
+$\text{softmax}(\vect{z})$ & Softmax function \\
+$\eta$ & Learning rate \\
+$\lambda$ & Regularization parameter \\
+$\epsilon$ & Small constant for numerical stability \\
+\hline
+\end{tabular}
+
+\section{Neural Networks and Transformers}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\mat{Q}$ & Query matrix (attention) \\
+$\mat{K}$ & Key matrix (attention) \\
+$\mat{V}$ & Value matrix (attention) \\
+$\mat{A}$ & Attention weights matrix \\
+$d$ & Model dimension \\
+$d_k$ & Key/query dimension \\
+$d_v$ & Value dimension \\
+$h$ & Number of attention heads \\
+$n, T$ & Sequence length \\
+$V$ & Vocabulary size \\
+$L$ & Number of layers \\
+$\text{Attention}(\mat{Q}, \mat{K}, \mat{V})$ & Attention mechanism \\
+$\text{MultiHead}(\cdot)$ & Multi-head attention \\
+$\text{FFN}(\cdot)$ & Feedforward network \\
+$\text{LayerNorm}(\cdot)$ & Layer normalization \\
+\hline
+\end{tabular}
+
+\section{Optimization}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\vect{w}^{(t)}$ & Parameters at iteration $t$ \\
+$\eta$ & Learning rate \\
+$\vect{g}^{(t)}$ & Gradient at iteration $t$ \\
+$\vect{m}^{(t)}$ & First moment estimate (momentum) \\
+$\vect{v}^{(t)}$ & Second moment estimate \\
+$\beta, \beta_1, \beta_2$ & Momentum coefficients \\
+$\epsilon$ & Numerical stability constant \\
+$\mathcal{B}$ & Mini-batch \\
+$|\mathcal{B}|$ & Batch size \\
+\hline
+\end{tabular}
+
+\section{Common Functions}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Function} & \textbf{Definition} \\
+\hline
+$\sigma(x)$ & $\frac{1}{1+e^{-x}}$ (sigmoid) \\
+$\tanh(x)$ & $\frac{e^x - e^{-x}}{e^x + e^{-x}}$ \\
+$\text{ReLU}(x)$ & $\max(0, x)$ \\
+$\text{softmax}(\vect{z})_i$ & $\frac{e^{z_i}}{\sum_j e^{z_j}}$ \\
+$\log(x)$ & Natural logarithm (base $e$) \\
+$\exp(x)$ & $e^x$ \\
+$\argmax_x f(x)$ & Value of $x$ that maximizes $f$ \\
+$\argmin_x f(x)$ & Value of $x$ that minimizes $f$ \\
+\hline
+\end{tabular}
+
+\section{Set Theory and Logic}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\in$ & Element of \\
+$\subset$ & Subset of \\
+$\cup$ & Union \\
+$\cap$ & Intersection \\
+$\emptyset$ & Empty set \\
+$|A|$ & Cardinality (size) of set $A$ \\
+$\sum_{i=1}^n$ & Sum from $i=1$ to $n$ \\
+$\prod_{i=1}^n$ & Product from $i=1$ to $n$ \\
+$\forall$ & For all \\
+$\exists$ & There exists \\
+$\implies$ & Implies \\
+$\iff$ & If and only if \\
+\hline
+\end{tabular}
+
+\section{Special Symbols}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$\approx$ & Approximately equal \\
+$\propto$ & Proportional to \\
+$\ll$ & Much less than \\
+$\gg$ & Much greater than \\
+$O(n)$ & Big-O notation (complexity) \\
+$\perp$ & Orthogonal/independent \\
+$\sim$ & Distributed as \\
+$\xrightarrow{d}$ & Converges in distribution \\
+$\nabla$ & Gradient operator (del) \\
+$\partial$ & Partial derivative symbol \\
+\hline
+\end{tabular}
+
+\section{Acronyms}
+
+\begin{tabular}{ll}
+\hline
+\textbf{Acronym} & \textbf{Full Name} \\
+\hline
+LLM & Large Language Model \\
+MLP & Multilayer Perceptron \\
+ReLU & Rectified Linear Unit \\
+GELU & Gaussian Error Linear Unit \\
+SGD & Stochastic Gradient Descent \\
+Adam & Adaptive Moment Estimation \\
+MLE & Maximum Likelihood Estimation \\
+MAP & Maximum A Posteriori \\
+KL & Kullback-Leibler \\
+SVD & Singular Value Decomposition \\
+PCA & Principal Component Analysis \\
+QR & QR Decomposition \\
+LU & Lower-Upper Decomposition \\
+NMF & Non-negative Matrix Factorization \\
+LoRA & Low-Rank Adaptation \\
+FFN & Feedforward Network \\
+MSE & Mean Squared Error \\
+PDF & Probability Density Function \\
+PMF & Probability Mass Function \\
+CDF & Cumulative Distribution Function \\
+i.i.d. & Independent and Identically Distributed \\
+\hline
+\end{tabular}

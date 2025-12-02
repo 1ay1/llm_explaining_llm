@@ -1,0 +1,452 @@
+\chapter{Training Large Language Models: Putting It All Together}
+
+\section{Introduction: The Full Pipeline}
+
+We've learned all the mathematical components—linear algebra, calculus, probability, optimization, attention mechanisms. Now we see how they all come together to train a large language model from scratch!
+
+\begin{intuition}
+Training an LLM is like conducting a massive orchestra. Every mathematical concept we've learned plays a crucial role:
+\begin{itemize}
+    \item \textbf{Linear algebra}: Matrix multiplications in every layer
+    \item \textbf{Calculus}: Backpropagation computes gradients
+    \item \textbf{Probability}: Modeling language as probability distributions
+    \item \textbf{Optimization}: Adam updates billions of parameters
+    \item \textbf{Attention}: Captures context and relationships
+\end{itemize}
+
+It's all interconnected!
+\end{intuition}
+
+\section{The Language Modeling Objective}
+
+\subsection{Autoregressive Language Modeling}
+
+LLMs are trained to predict the next token given all previous tokens.
+
+\begin{definition}{Language Modeling Objective}{}
+Given sequence $w_1, w_2, \ldots, w_T$, maximize:
+\[
+\mathcal{L} = \sum_{t=1}^T \log P(w_t | w_1, \ldots, w_{t-1}; \theta)
+\]
+
+This factors the joint probability:
+\[
+P(w_1, \ldots, w_T) = \prod_{t=1}^T P(w_t | w_1, \ldots, w_{t-1})
+\]
+\end{definition}
+
+\begin{intuition}
+We're teaching the model: "Given you've seen these words, what word comes next?"
+
+By learning to predict every next word in billions of documents, the model learns grammar, facts, reasoning patterns, and more!
+\end{intuition}
+
+\subsection{Cross-Entropy Loss}
+
+For each position $t$, the model outputs probabilities over vocabulary:
+\[
+\hat{y}_t = \text{softmax}(\mat{W}_{\text{out}} \vect{h}_t)
+\]
+
+Loss at position $t$:
+\[
+\mathcal{L}_t = -\log \hat{y}_{t, w_t}
+\]
+
+where $w_t$ is the true next token.
+
+Total loss (negative log-likelihood):
+\[
+\mathcal{L} = -\frac{1}{T}\sum_{t=1}^T \log P(w_t | w_{<t}; \theta)
+\]
+
+\begin{connection}
+Minimizing cross-entropy = maximizing likelihood = making training data most probable!
+
+This connects information theory, probability, and optimization.
+\end{connection}
+
+\section{The Training Loop}
+
+\subsection{High-Level Algorithm}
+
+\begin{enumerate}
+    \item \textbf{Initialize} parameters $\theta$ (Xavier/He initialization)
+    \item \textbf{For each epoch}:
+    \begin{enumerate}
+        \item \textbf{For each batch} of sequences:
+        \begin{enumerate}
+            \item Forward pass: Compute predictions
+            \item Compute loss (cross-entropy)
+            \item Backward pass: Compute gradients via backpropagation
+            \item Update parameters: $\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}$
+        \end{enumerate}
+    \end{enumerate}
+    \item \textbf{Evaluate} on validation set
+    \item \textbf{Save} checkpoint
+\end{enumerate}
+
+\subsection{Forward Pass Through Transformer}
+
+For input sequence $\vect{x}_1, \ldots, \vect{x}_T$:
+
+\begin{enumerate}
+    \item \textbf{Embedding}: $\vect{h}_t^{(0)} = \mat{E}_{w_t} + \mat{P}_t$
+    \item \textbf{For each layer} $\ell = 1, \ldots, L$:
+    \begin{enumerate}
+        \item Multi-head attention: $\vect{a}_t^{(\ell)} = \text{MultiHead}(\vect{h}_t^{(\ell-1)})$
+        \item Add \& LayerNorm: $\vect{h}_t^{(\ell,1)} = \text{LayerNorm}(\vect{h}_t^{(\ell-1)} + \vect{a}_t^{(\ell)})$
+        \item Feedforward: $\vect{f}_t^{(\ell)} = \text{FFN}(\vect{h}_t^{(\ell,1)})$
+        \item Add \& LayerNorm: $\vect{h}_t^{(\ell)} = \text{LayerNorm}(\vect{h}_t^{(\ell,1)} + \vect{f}_t^{(\ell)})$
+    \end{enumerate}
+    \item \textbf{Output projection}: $\vect{z}_t = \mat{W}_{\text{out}} \vect{h}_t^{(L)}$
+    \item \textbf{Softmax}: $\hat{y}_t = \text{softmax}(\vect{z}_t)$
+\end{enumerate}
+
+\subsection{Backward Pass}
+
+Backpropagation computes gradients layer by layer (in reverse):
+
+\[
+\frac{\partial \mathcal{L}}{\partial \theta_\ell} = \frac{\partial \mathcal{L}}{\partial \vect{h}^{(\ell+1)}} \frac{\partial \vect{h}^{(\ell+1)}}{\partial \vect{h}^{(\ell)}} \frac{\partial \vect{h}^{(\ell)}}{\partial \theta_\ell}
+\]
+
+This is the chain rule applied systematically through all layers!
+
+\section{Practical Training Considerations}
+
+\subsection{Batch Size}
+
+Typical batch sizes:
+\begin{itemize}
+    \item Small models: 256-512 sequences
+    \item Large models: 4M-16M tokens per batch
+    \item Gradient accumulation if batch doesn't fit in memory
+\end{itemize}
+
+\subsection{Learning Rate}
+
+\begin{definition}{Learning Rate Schedule}{}
+Commonly used: Warmup + Cosine Decay
+
+\textbf{Warmup phase} (first $T_w$ steps):
+\[
+\eta_t = \eta_{\max} \cdot \frac{t}{T_w}
+\]
+
+\textbf{Cosine decay phase} ($t > T_w$):
+\[
+\eta_t = \eta_{\min} + \frac{1}{2}(\eta_{\max} - \eta_{\min})\left(1 + \cos\left(\frac{t - T_w}{T_{\max} - T_w}\pi\right)\right)
+\]
+\end{definition}
+
+Typical values:
+\begin{itemize}
+    \item $\eta_{\max} = 6 \times 10^{-4}$ for models like GPT-3
+    \item $T_w = 2000$ steps (warmup)
+    \item $\eta_{\min} = 0.1 \times \eta_{\max}$
+\end{itemize}
+
+\begin{intuition}
+Warmup prevents instability at the start (when gradients can be large and erratic). Cosine decay helps the model settle into a good minimum.
+\end{intuition}
+
+\subsection{Weight Decay}
+
+L2 regularization on parameters:
+\[
+\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \sum_i w_i^2
+\]
+
+Typical: $\lambda = 0.1$
+
+\begin{connection}
+Weight decay prevents overfitting by penalizing large weights. It's equivalent to MAP estimation with Gaussian prior!
+\end{connection}
+
+\subsection{Gradient Clipping}
+
+Prevent exploding gradients:
+\[
+\text{if } \|\nabla_\theta \mathcal{L}\| > \tau: \quad \nabla_\theta \mathcal{L} \leftarrow \tau \frac{\nabla_\theta \mathcal{L}}{\|\nabla_\theta \mathcal{L}\|}
+\]
+
+Typical: $\tau = 1.0$
+
+\section{Scaling Laws}
+
+\subsection{The Power Laws of Deep Learning}
+
+Loss scales predictably with model size, data, and compute!
+
+\begin{theorem}{Scaling Laws (Kaplan et al.)}{}
+Test loss follows approximate power laws:
+\[
+L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N}
+\]
+where:
+\begin{itemize}
+    \item $N$: Number of parameters
+    \item $D$: Dataset size
+    \item $C$: Compute budget
+    \item $\alpha_N \approx 0.076$: Scaling exponent
+\end{itemize}
+\end{theorem}
+
+\begin{connection}
+This tells us: Bigger models trained on more data with more compute consistently perform better! This insight drove the race to GPT-3, GPT-4, etc.
+\end{connection}
+
+\subsection{Optimal Allocation}
+
+For fixed compute budget $C$:
+\begin{itemize}
+    \item Don't just scale model size!
+    \item Also scale data proportionally
+    \item Chinchilla finding: Most models are undertrained
+\end{itemize}
+
+\section{Distributed Training}
+
+\subsection{Data Parallelism}
+
+Split batch across GPUs:
+\begin{itemize}
+    \item Each GPU has full model copy
+    \item Each GPU processes different data
+    \item Gradients averaged across GPUs
+\end{itemize}
+
+\subsection{Model Parallelism}
+
+Split model across GPUs:
+\begin{itemize}
+    \item Each GPU has part of the model
+    \item Data flows through GPUs sequentially
+    \item Necessary for very large models
+\end{itemize}
+
+\subsection{Pipeline Parallelism}
+
+Combination:
+\begin{itemize}
+    \item Different GPUs handle different layers
+    \item Micro-batches pipelined through
+    \item Reduces bubble time
+\end{itemize}
+
+\section{Tokenization}
+
+\subsection{Byte-Pair Encoding (BPE)}
+
+Most LLMs use BPE tokenization:
+
+\begin{enumerate}
+    \item Start with character vocabulary
+    \item Iteratively merge most frequent pairs
+    \item Build vocabulary of $\sim$50k tokens
+\end{enumerate}
+
+\begin{example}
+"tokenization" might become: ["token", "ization"]
+
+"machine learning" might become: ["machine", " learning"]
+\end{example}
+
+\begin{intuition}
+BPE balances:
+\begin{itemize}
+    \item Vocabulary size (memory/compute)
+    \item Representing rare words (compositionally)
+    \item Common words get single tokens (efficient)
+\end{itemize}
+\end{intuition}
+
+\section{Training Dynamics}
+
+\subsection{What Happens During Training?}
+
+\textbf{Early stages (first few epochs):}
+\begin{itemize}
+    \item Learn basic syntax and common patterns
+    \item Rapid loss decrease
+    \item Model learns token frequencies
+\end{itemize}
+
+\textbf{Middle stages:}
+\begin{itemize}
+    \item Learn semantic relationships
+    \item Develop world knowledge
+    \item Capture long-range dependencies
+\end{itemize}
+
+\textbf{Late stages:}
+\begin{itemize}
+    \item Refinement of patterns
+    \item Slow loss decrease
+    \item Risk of overfitting if not careful
+\end{itemize}
+
+\subsection{Monitoring Training}
+
+Key metrics to track:
+\begin{itemize}
+    \item \textbf{Training loss}: Should steadily decrease
+    \item \textbf{Validation loss}: Should track training loss (if diverges: overfitting)
+    \item \textbf{Perplexity}: $\exp(\text{loss})$—interpretable metric
+    \item \textbf{Gradient norm}: Watch for exploding/vanishing
+    \item \textbf{Learning rate}: Verify schedule is correct
+\end{itemize}
+
+\section{Evaluation}
+
+\subsection{Perplexity}
+
+\[
+\text{PPL} = \exp\left(-\frac{1}{T}\sum_{t=1}^T \log P(w_t | w_{<t})\right)
+\]
+
+Lower is better! Interpretable as "effective branching factor."
+
+\subsection{Downstream Tasks}
+
+Evaluate on specific tasks:
+\begin{itemize}
+    \item Question answering
+    \item Summarization
+    \item Translation
+    \item Common sense reasoning
+\end{itemize}
+
+\subsection{Human Evaluation}
+
+Ultimately, human judgment matters:
+\begin{itemize}
+    \item Fluency
+    \item Coherence
+    \item Factuality
+    \item Helpfulness
+\end{itemize}
+
+\section{From Pre-training to Deployment}
+
+\subsection{Pre-training}
+
+Train on massive unlabeled text corpus:
+\begin{itemize}
+    \item Web text (Common Crawl)
+    \item Books
+    \item Wikipedia
+    \item Code repositories
+\end{itemize}
+
+\subsection{Fine-tuning}
+
+Adapt to specific tasks or styles:
+\begin{itemize}
+    \item Supervised fine-tuning on demonstrations
+    \item Instruction tuning
+    \item Domain adaptation
+\end{itemize}
+
+\subsection{RLHF (Reinforcement Learning from Human Feedback)}
+
+\begin{enumerate}
+    \item Collect human preferences
+    \item Train reward model
+    \item Optimize policy (LLM) using PPO or similar
+\end{enumerate}
+
+\begin{connection}
+This is how ChatGPT and Claude become helpful, harmless, and honest! Pre-training gives knowledge, RLHF aligns behavior with human values.
+\end{connection}
+
+\section{Computational Requirements}
+
+\subsection{Example: GPT-3 Scale}
+
+Training GPT-3 (175B parameters):
+\begin{itemize}
+    \item \textbf{Hardware}: 10,000+ V100 GPUs
+    \item \textbf{Data}: 300B tokens
+    \item \textbf{Time}: Several weeks
+    \item \textbf{Cost}: Estimated \$5-10 million
+    \item \textbf{FLOPs}: $\sim 3 \times 10^{23}$
+\end{itemize}
+
+\subsection{Efficiency Techniques}
+
+To make training tractable:
+\begin{itemize}
+    \item \textbf{Mixed precision}: FP16 + FP32
+    \item \textbf{Gradient checkpointing}: Trade compute for memory
+    \item \textbf{Activation recomputation}: Save memory
+    \item \textbf{Flash Attention}: Optimized attention kernels
+    \item \textbf{Model parallelism}: Split across devices
+\end{itemize}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Loss Computation}
+
+Given vocabulary size $V = 50,000$ and true next token has probability $p = 0.1$ in model output.
+
+What is the cross-entropy loss for this token?
+
+\subsection{Problem 2: Parameter Count}
+
+A transformer has:
+\begin{itemize}
+    \item Embedding dimension: $d = 768$
+    \item Number of layers: $L = 12$
+    \item Number of heads: $h = 12$
+    \item Vocabulary size: $V = 50,000$
+\end{itemize}
+
+Estimate total parameter count (include embeddings, attention, feedforward).
+
+\subsection{Problem 3: Scaling}
+
+If doubling model size reduces loss by factor of $2^{-0.076}$, how much bigger does a model need to be to halve the loss?
+
+\subsection{Problem 4: Training Time}
+
+Given:
+\begin{itemize}
+    \item Batch size: 1M tokens
+    \item Training data: 300B tokens
+    \item Time per batch: 2 seconds
+\end{itemize}
+
+How long to do one pass through the data?
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Language modeling} predicts next tokens autoregressively
+    \item \textbf{Cross-entropy loss} trains the model via maximum likelihood
+    \item \textbf{Transformer architecture} uses attention to process sequences
+    \item \textbf{Backpropagation} computes gradients through all layers
+    \item \textbf{Adam optimizer} updates billions of parameters efficiently
+    \item \textbf{Learning rate schedules} (warmup + decay) stabilize training
+    \item \textbf{Scaling laws} show consistent improvement with size/data/compute
+    \item \textbf{Distributed training} makes large-scale training feasible
+    \item All the math we've learned comes together in training LLMs!
+\end{itemize}
+
+\section{Conclusion}
+
+\begin{connection}
+You now understand how LLMs are trained from first principles! Every component we've studied—from dot products to gradient descent—plays a crucial role:
+
+\begin{itemize}
+    \item Linear algebra powers the matrix operations in every layer
+    \item Calculus enables backpropagation and optimization
+    \item Probability theory frames language modeling
+    \item Information theory guides the loss function
+    \item Attention mechanisms capture context
+    \item Optimization algorithms make learning tractable
+\end{itemize}
+
+Training an LLM is one of humanity's most sophisticated computational achievements. And now you understand the mathematics that makes it possible!
+\end{connection}

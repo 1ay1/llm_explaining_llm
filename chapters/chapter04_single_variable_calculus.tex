@@ -1,0 +1,508 @@
+\chapter{Single Variable Calculus: The Mathematics of Change}
+
+\section{Introduction: Why Calculus?}
+
+Imagine you're training a neural network. At each step, you adjust weights to reduce the error. But how do you know \textit{which direction} to adjust? How much? Calculus tells us how things change and how to optimize them.
+
+\begin{intuition}
+Calculus is the mathematics of change and accumulation. It answers two fundamental questions:
+\begin{itemize}
+    \item \textbf{Differentiation}: How fast is something changing?
+    \item \textbf{Integration}: How much has accumulated over time?
+\end{itemize}
+
+In deep learning, we use derivatives to find the direction that decreases loss the most—this is gradient descent!
+\end{intuition}
+
+\begin{connection}
+Every time an LLM learns, it's using calculus! Backpropagation is just the chain rule applied systematically. Understanding derivatives is understanding how neural networks learn.
+\end{connection}
+
+\section{Limits: The Foundation}
+
+\subsection{What is a Limit?}
+
+A \vocab{limit} describes the behavior of a function as its input approaches some value.
+
+\begin{definition}{Limit}{}
+We write:
+\[
+\lim_{x \to a} f(x) = L
+\]
+if $f(x)$ gets arbitrarily close to $L$ as $x$ gets arbitrarily close to $a$ (but not necessarily equal to $a$).
+\end{definition}
+
+\begin{example}
+\[
+\lim_{x \to 2} (3x + 1) = 3(2) + 1 = 7
+\]
+
+The function approaches 7 as $x$ approaches 2.
+\end{example}
+
+\begin{example}
+Consider $f(x) = \frac{x^2 - 4}{x - 2}$ at $x = 2$:
+
+Direct substitution gives $\frac{0}{0}$ (undefined!). But:
+\[
+f(x) = \frac{(x-2)(x+2)}{x-2} = x + 2 \quad \text{for } x \neq 2
+\]
+\[
+\lim_{x \to 2} f(x) = \lim_{x \to 2} (x + 2) = 4
+\]
+\end{example}
+
+\subsection{One-Sided Limits}
+
+Sometimes we need to approach from one side:
+
+\begin{itemize}
+    \item \textbf{Right-hand limit}: $\lim_{x \to a^+} f(x)$ (approaching from values $> a$)
+    \item \textbf{Left-hand limit}: $\lim_{x \to a^-} f(x)$ (approaching from values $< a$)
+\end{itemize}
+
+The limit exists if and only if both one-sided limits exist and are equal.
+
+\begin{connection}
+In neural networks, ReLU (Rectified Linear Unit) has different one-sided derivatives:
+\[
+\text{ReLU}(x) = \max(0, x) = \begin{cases} 0 & x < 0 \\ x & x \geq 0 \end{cases}
+\]
+Understanding one-sided limits helps us handle such piecewise functions!
+\end{connection}
+
+\section{The Derivative: Rate of Change}
+
+\subsection{Definition}
+
+The \vocab{derivative} measures the instantaneous rate of change.
+
+\begin{definition}{Derivative}{}
+The derivative of $f$ at $x$ is:
+\[
+f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
+\]
+if this limit exists.
+
+Alternative notation: $\frac{df}{dx}$, $\frac{d}{dx}f(x)$, $Df(x)$
+\end{definition}
+
+\begin{intuition}
+The derivative is the slope of the tangent line at a point. It tells you: "If I move a tiny bit in $x$, how much does $f(x)$ change?"
+
+Think of it as sensitivity: A large derivative means the function is very sensitive to changes in input.
+\end{intuition}
+
+\begin{example}
+Find the derivative of $f(x) = x^2$:
+\begin{align*}
+f'(x) &= \lim_{h \to 0} \frac{(x+h)^2 - x^2}{h} \\
+&= \lim_{h \to 0} \frac{x^2 + 2xh + h^2 - x^2}{h} \\
+&= \lim_{h \to 0} \frac{2xh + h^2}{h} \\
+&= \lim_{h \to 0} (2x + h) = 2x
+\end{align*}
+
+So $(x^2)' = 2x$.
+\end{example}
+
+\subsection{Basic Derivative Rules}
+
+\begin{theorem}{Power Rule}{}
+\[
+\frac{d}{dx}x^n = nx^{n-1}
+\]
+\end{theorem}
+
+\begin{theorem}{Constant Multiple Rule}{}
+\[
+\frac{d}{dx}[c \cdot f(x)] = c \cdot f'(x)
+\]
+\end{theorem}
+
+\begin{theorem}{Sum Rule}{}
+\[
+\frac{d}{dx}[f(x) + g(x)] = f'(x) + g'(x)
+\]
+\end{theorem}
+
+\begin{example}
+Differentiate $f(x) = 3x^4 - 5x^2 + 7x - 2$:
+\[
+f'(x) = 3(4x^3) - 5(2x) + 7(1) - 0 = 12x^3 - 10x + 7
+\]
+\end{example}
+
+\section{The Product and Quotient Rules}
+
+\subsection{Product Rule}
+
+When multiplying functions, derivatives don't just multiply!
+
+\begin{theorem}{Product Rule}{}
+\[
+\frac{d}{dx}[f(x)g(x)] = f'(x)g(x) + f(x)g'(x)
+\]
+
+In words: "derivative of first times second, plus first times derivative of second"
+\end{theorem}
+
+\begin{intuition}
+Think of a rectangle with sides $f(x)$ and $g(x)$. When both sides change slightly, the area change has two parts: one side grows while the other is constant, and vice versa.
+\end{intuition}
+
+\begin{example}
+Differentiate $h(x) = x^2 \sin(x)$:
+\[
+h'(x) = (x^2)'\sin(x) + x^2(\sin(x))' = 2x\sin(x) + x^2\cos(x)
+\]
+\end{example}
+
+\subsection{Quotient Rule}
+
+\begin{theorem}{Quotient Rule}{}
+\[
+\frac{d}{dx}\left[\frac{f(x)}{g(x)}\right] = \frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}
+\]
+
+Mnemonic: "low d-high minus high d-low, over low squared"
+\end{theorem}
+
+\begin{example}
+Differentiate $f(x) = \frac{x^2 + 1}{x - 1}$:
+\begin{align*}
+f'(x) &= \frac{(2x)(x-1) - (x^2+1)(1)}{(x-1)^2} \\
+&= \frac{2x^2 - 2x - x^2 - 1}{(x-1)^2} = \frac{x^2 - 2x - 1}{(x-1)^2}
+\end{align*}
+\end{example}
+
+\section{The Chain Rule: Derivatives of Compositions}
+
+This is THE most important rule for deep learning!
+
+\begin{theorem}{Chain Rule}{}
+If $y = f(g(x))$, then:
+\[
+\frac{dy}{dx} = f'(g(x)) \cdot g'(x)
+\]
+
+Or in Leibniz notation: $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$ where $u = g(x)$
+\end{theorem}
+
+\begin{intuition}
+The chain rule is about ``compounding'' rates of change. If $y$ changes $3\times$ as fast as $u$, and $u$ changes $2\times$ as fast as $x$, then $y$ changes $3 \times 2 = 6\times$ as fast as $x$.
+
+This is exactly what happens in a neural network: changes propagate through layers!
+\end{intuition}
+
+\begin{example}
+Differentiate $f(x) = (x^2 + 1)^{10}$:
+
+Let $u = x^2 + 1$, so $f(x) = u^{10}$.
+\[
+f'(x) = 10u^9 \cdot (2x) = 10(x^2 + 1)^9 \cdot 2x = 20x(x^2 + 1)^9
+\]
+\end{example}
+
+\begin{connection}
+\textbf{The chain rule IS backpropagation!}
+
+In a neural network:
+\[
+\text{Input} \xrightarrow{f_1} \text{Hidden}_1 \xrightarrow{f_2} \text{Hidden}_2 \xrightarrow{f_3} \text{Output}
+\]
+
+To find how the output changes with respect to the input:
+\[
+\frac{d\text{Output}}{d\text{Input}} = \frac{d\text{Output}}{d\text{Hidden}_2} \cdot \frac{d\text{Hidden}_2}{d\text{Hidden}_1} \cdot \frac{d\text{Hidden}_1}{d\text{Input}}
+\]
+
+This is the chain rule! Backpropagation computes these derivatives layer by layer.
+\end{connection}
+
+\section{Common Functions and Their Derivatives}
+
+\subsection{Exponential and Logarithm}
+
+\begin{theorem}{Exponential Derivative}{}
+\[
+\frac{d}{dx}e^x = e^x
+\]
+
+The exponential function is its own derivative—beautiful!
+\end{theorem}
+
+\begin{theorem}{Logarithm Derivative}{}
+\[
+\frac{d}{dx}\ln(x) = \frac{1}{x}
+\]
+\end{theorem}
+
+\begin{example}
+Using the chain rule:
+\[
+\frac{d}{dx}e^{x^2} = e^{x^2} \cdot 2x = 2xe^{x^2}
+\]
+\[
+\frac{d}{dx}\ln(x^2 + 1) = \frac{1}{x^2 + 1} \cdot 2x = \frac{2x}{x^2 + 1}
+\]
+\end{example}
+
+\begin{connection}
+In machine learning:
+\begin{itemize}
+    \item \textbf{Softmax} uses exponentials: $\sigma(x_i) = \frac{e^{x_i}}{\sum_j e^{x_j}}$
+    \item \textbf{Cross-entropy loss} uses logarithms: $\mathcal{L} = -\sum y_i \log(\hat{y}_i)$
+    \item \textbf{Log-likelihood} is everywhere in probabilistic models
+\end{itemize}
+\end{connection}
+
+\subsection{Trigonometric Functions}
+
+\begin{align*}
+\frac{d}{dx}\sin(x) &= \cos(x) \\
+\frac{d}{dx}\cos(x) &= -\sin(x) \\
+\frac{d}{dx}\tan(x) &= \sec^2(x) = \frac{1}{\cos^2(x)}
+\end{align*}
+
+\subsection{Activation Functions in Neural Networks}
+
+\subsubsection{Sigmoid}
+
+\[
+\sigma(x) = \frac{1}{1 + e^{-x}}
+\]
+
+Derivative:
+\[
+\sigma'(x) = \sigma(x)(1 - \sigma(x))
+\]
+
+\begin{intuition}
+The sigmoid squashes any input to $(0, 1)$—useful for probabilities! But its derivative is small when $|x|$ is large, leading to vanishing gradients.
+\end{intuition}
+
+\subsubsection{Hyperbolic Tangent (tanh)}
+
+\[
+\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+\]
+
+Derivative:
+\[
+\tanh'(x) = 1 - \tanh^2(x)
+\]
+
+\subsubsection{ReLU (Rectified Linear Unit)}
+
+\[
+\text{ReLU}(x) = \max(0, x) = \begin{cases} 0 & x < 0 \\ x & x \geq 0 \end{cases}
+\]
+
+Derivative:
+\[
+\text{ReLU}'(x) = \begin{cases} 0 & x < 0 \\ 1 & x > 0 \\ \text{undefined} & x = 0 \end{cases}
+\]
+
+In practice, we define $\text{ReLU}'(0) = 0$ or $1$.
+
+\begin{connection}
+ReLU revolutionized deep learning! Unlike sigmoid/tanh:
+\begin{itemize}
+    \item No vanishing gradient for $x > 0$
+    \item Computationally cheap
+    \item Sparse activation (many neurons output 0)
+    \item But can "die" (always output 0 if weights become negative)
+\end{itemize}
+\end{connection}
+
+\subsubsection{GELU (Gaussian Error Linear Unit)}
+
+Modern transformers use GELU:
+\[
+\text{GELU}(x) = x \cdot \Phi(x)
+\]
+where $\Phi(x)$ is the standard normal CDF.
+
+Approximation:
+\[
+\text{GELU}(x) \approx 0.5x\left(1 + \tanh\left[\sqrt{\frac{2}{\pi}}(x + 0.044715x^3)\right]\right)
+\]
+
+\section{Higher-Order Derivatives}
+
+The \vocab{second derivative} measures how the rate of change itself is changing (curvature):
+\[
+f''(x) = \frac{d^2f}{dx^2} = \frac{d}{dx}\left[\frac{df}{dx}\right]
+\]
+
+\begin{example}
+For $f(x) = x^4$:
+\begin{align*}
+f'(x) &= 4x^3 \\
+f''(x) &= 12x^2 \\
+f'''(x) &= 24x \\
+f^{(4)}(x) &= 24
+\end{align*}
+\end{example}
+
+\begin{connection}
+Second derivatives are crucial for:
+\begin{itemize}
+    \item \textbf{Optimization}: Second-order methods use the Hessian (matrix of second derivatives)
+    \item \textbf{Curvature}: Tells us if we're at a minimum (positive) or maximum (negative)
+    \item \textbf{Newton's method}: Uses $f''$ to find better descent directions
+\end{itemize}
+\end{connection}
+
+\section{Critical Points and Optimization}
+
+\subsection{Critical Points}
+
+A \vocab{critical point} is where $f'(x) = 0$ or $f'(x)$ doesn't exist.
+
+\begin{theorem}{First Derivative Test}{}
+If $f'(x) = 0$ at $x = c$:
+\begin{itemize}
+    \item If $f'$ changes from positive to negative at $c$: local maximum
+    \item If $f'$ changes from negative to positive at $c$: local minimum
+    \item If $f'$ doesn't change sign: saddle point (inflection point)
+\end{itemize}
+\end{theorem}
+
+\begin{theorem}{Second Derivative Test}{}
+If $f'(c) = 0$:
+\begin{itemize}
+    \item If $f''(c) > 0$: local minimum (concave up)
+    \item If $f''(c) < 0$: local maximum (concave down)
+    \item If $f''(c) = 0$: test is inconclusive
+\end{itemize}
+\end{theorem}
+
+\begin{example}
+Minimize $f(x) = x^2 - 4x + 5$:
+
+\begin{align*}
+f'(x) &= 2x - 4 = 0 \\
+x &= 2
+\end{align*}
+
+Check: $f''(x) = 2 > 0$, so $x = 2$ is a minimum.
+
+Minimum value: $f(2) = 4 - 8 + 5 = 1$.
+\end{example}
+
+\begin{connection}
+This is the essence of training neural networks! We want to find weights that minimize loss:
+\[
+\text{Find } \vect{w}^* = \argmin_{\vect{w}} \mathcal{L}(\vect{w})
+\]
+
+We use derivatives to find the direction to adjust weights. In high dimensions, this becomes gradient descent!
+\end{connection}
+
+\section{L'Hôpital's Rule}
+
+When limits give indeterminate forms like $\frac{0}{0}$ or $\frac{\infty}{\infty}$:
+
+\begin{theorem}{L'Hôpital's Rule}{}
+If $\lim_{x \to a} \frac{f(x)}{g(x)}$ gives $\frac{0}{0}$ or $\frac{\infty}{\infty}$, then:
+\[
+\lim_{x \to a} \frac{f(x)}{g(x)} = \lim_{x \to a} \frac{f'(x)}{g'(x)}
+\]
+(if the right-hand limit exists)
+\end{theorem}
+
+\begin{example}
+\[
+\lim_{x \to 0} \frac{\sin(x)}{x} = \lim_{x \to 0} \frac{\cos(x)}{1} = \frac{1}{1} = 1
+\]
+\end{example}
+
+\section{Taylor Series: Approximating Functions}
+
+Any smooth function can be approximated by a polynomial!
+
+\begin{definition}{Taylor Series}{}
+The Taylor series of $f$ around $x = a$ is:
+\[
+f(x) = \sum_{n=0}^{\infty} \frac{f^{(n)}(a)}{n!}(x-a)^n = f(a) + f'(a)(x-a) + \frac{f''(a)}{2!}(x-a)^2 + \cdots
+\]
+
+When $a = 0$, it's called a \vocab{Maclaurin series}.
+\end{definition}
+
+\begin{example}
+Taylor series of $e^x$ around $x = 0$:
+\[
+e^x = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \frac{x^4}{4!} + \cdots = \sum_{n=0}^{\infty} \frac{x^n}{n!}
+\]
+\end{example}
+
+\begin{example}
+Taylor series of $\sin(x)$:
+\[
+\sin(x) = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!} + \cdots
+\]
+\end{example}
+
+\begin{connection}
+Taylor series are everywhere in ML:
+\begin{itemize}
+    \item \textbf{Activation approximations}: Computing GELU, softmax efficiently
+    \item \textbf{Optimization}: Newton's method uses second-order Taylor approximation
+    \item \textbf{Analysis}: Understanding behavior of loss landscapes
+    \item \textbf{Numerical methods}: Computing transcendental functions
+\end{itemize}
+\end{connection}
+
+\section{Practice Problems}
+
+\subsection{Problem 1: Basic Derivatives}
+
+Find derivatives of:
+\begin{enumerate}[label=(\alph*)]
+    \item $f(x) = 5x^3 - 2x^2 + 7x - 3$
+    \item $g(x) = \frac{x^2 + 1}{x - 1}$
+    \item $h(x) = e^{x^2 + 3x}$
+    \item $k(x) = \ln(x^3 + 2x)$
+\end{enumerate}
+
+\subsection{Problem 2: Chain Rule Practice}
+
+Differentiate:
+\begin{enumerate}[label=(\alph*)]
+    \item $f(x) = (3x^2 + 2x + 1)^7$
+    \item $g(x) = e^{\sin(x)}$
+    \item $h(x) = \sin(e^x)$
+    \item $k(x) = \ln(\cos(x^2))$
+\end{enumerate}
+
+\subsection{Problem 3: Activation Function Derivative}
+
+Prove that the derivative of sigmoid is $\sigma'(x) = \sigma(x)(1 - \sigma(x))$.
+
+\subsection{Problem 4: Optimization}
+
+Find the minimum of $f(x) = x^3 - 6x^2 + 9x + 1$ and verify it's a minimum using the second derivative test.
+
+\subsection{Problem 5: Neural Network Connection}
+
+A simple neural network computes: $y = \sigma(w_2 \cdot \sigma(w_1 \cdot x))$ where $\sigma$ is sigmoid.
+
+Use the chain rule to find $\frac{dy}{dw_1}$ (this is what backpropagation computes!).
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Derivatives} measure rates of change—the foundation of optimization
+    \item \textbf{The chain rule} is backpropagation in disguise
+    \item \textbf{Critical points} (where $f' = 0$) are candidates for minima/maxima
+    \item \textbf{Second derivatives} tell us about curvature
+    \item \textbf{Taylor series} approximate functions as polynomials
+    \item Every activation function has a derivative that determines how gradients flow
+    \item Understanding single-variable calculus is the first step to understanding optimization in neural networks
+\end{itemize}
+
+\begin{connection}
+You now understand the calculus that powers gradient descent! When training an LLM, we compute millions of derivatives using these rules. In the next chapter, we'll extend these ideas to multiple variables—the setting where neural networks actually live. This is where things get really exciting!
+\end{connection}

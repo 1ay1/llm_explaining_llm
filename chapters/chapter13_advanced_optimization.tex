@@ -1,0 +1,126 @@
+\chapter{Advanced Optimization: Training Neural Networks Efficiently}
+
+\section{Introduction: Beyond Basic Gradient Descent}
+
+Simple gradient descent has a problem: it's too simple! Modern neural networks require sophisticated optimization techniques to train efficiently.
+
+\begin{intuition}
+Imagine hiking down a mountain in thick fog. Basic gradient descent is like always taking steps downhill, but you might:
+\begin{itemize}
+    \item Get stuck in ravines (poor conditioning)
+    \item Oscillate back and forth (high learning rate)
+    \item Move too slowly (low learning rate)
+    \item Miss the best path entirely (local minima)
+\end{itemize}
+
+Advanced optimizers address these issues!
+\end{intuition}
+
+\section{Momentum: Accelerating Gradient Descent}
+
+\subsection{The Basic Idea}
+
+Momentum accumulates gradients over time, like a ball rolling downhill.
+
+\begin{definition}{Momentum}{}
+\begin{align*}
+\vect{v}^{(t)} &= \beta \vect{v}^{(t-1)} + (1-\beta)\nabla_{\vect{w}} \mathcal{L}(\vect{w}^{(t)}) \\
+\vect{w}^{(t+1)} &= \vect{w}^{(t)} - \eta \vect{v}^{(t)}
+\end{align*}
+
+where $\beta \in [0, 1]$ is the momentum coefficient (typically 0.9).
+\end{definition}
+
+\begin{intuition}
+The velocity $\vect{v}^{(t)}$ is an exponential moving average of gradients. This helps:
+\begin{itemize}
+    \item Accelerate in consistent directions
+    \item Dampen oscillations
+    \item Escape shallow local minima
+\end{itemize}
+\end{intuition}
+
+\section{RMSprop: Adaptive Learning Rates}
+
+\begin{definition}{RMSprop}{}
+\begin{align*}
+\vect{s}^{(t)} &= \beta \vect{s}^{(t-1)} + (1-\beta)(\nabla_{\vect{w}} \mathcal{L})^2 \\
+\vect{w}^{(t+1)} &= \vect{w}^{(t)} - \frac{\eta}{\sqrt{\vect{s}^{(t)} + \epsilon}} \odot \nabla_{\vect{w}} \mathcal{L}
+\end{align*}
+
+where $\odot$ is element-wise multiplication and $\epsilon \approx 10^{-8}$ for numerical stability.
+\end{definition}
+
+\section{Adam: The Default Choice}
+
+\subsection{Combining Momentum and RMSprop}
+
+\begin{definition}{Adam Optimizer}{}
+Adam maintains both first and second moment estimates:
+
+\begin{align*}
+\vect{m}^{(t)} &= \beta_1 \vect{m}^{(t-1)} + (1-\beta_1)\nabla_{\vect{w}} \mathcal{L} \quad \text{(momentum)} \\
+\vect{v}^{(t)} &= \beta_2 \vect{v}^{(t-1)} + (1-\beta_2)(\nabla_{\vect{w}} \mathcal{L})^2 \quad \text{(RMSprop)}
+\end{align*}
+
+Bias correction:
+\begin{align*}
+\hat{\vect{m}}^{(t)} &= \frac{\vect{m}^{(t)}}{1 - \beta_1^t} \\
+\hat{\vect{v}}^{(t)} &= \frac{\vect{v}^{(t)}}{1 - \beta_2^t}
+\end{align*}
+
+Update:
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \frac{\eta}{\sqrt{\hat{\vect{v}}^{(t)}} + \epsilon} \odot \hat{\vect{m}}^{(t)}
+\]
+
+Typical values: $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\eta = 10^{-3}$
+\end{definition}
+
+\begin{connection}
+Adam is the default optimizer for training LLMs! It's robust, requires little tuning, and works well across diverse tasks.
+\end{connection}
+
+\section{AdamW: Weight Decay Done Right}
+
+\begin{definition}{AdamW}{}
+Instead of adding L2 regularization to the loss, decouple weight decay:
+\[
+\vect{w}^{(t+1)} = \vect{w}^{(t)} - \eta\left[\frac{\hat{\vect{m}}^{(t)}}{\sqrt{\hat{\vect{v}}^{(t)}} + \epsilon} + \lambda \vect{w}^{(t)}\right]
+\]
+
+where $\lambda$ is the weight decay coefficient.
+\end{definition}
+
+\begin{connection}
+Most modern LLMs use AdamW! The decoupled weight decay improves generalization.
+\end{connection}
+
+\section{Learning Rate Schedules}
+
+\subsection{Warmup}
+
+Start with small learning rate and gradually increase:
+\[
+\eta^{(t)} = \eta_{\max} \cdot \min\left(1, \frac{t}{T_{\text{warmup}}}\right)
+\]
+
+\subsection{Cosine Annealing}
+
+After warmup, decay using cosine:
+\[
+\eta^{(t)} = \eta_{\min} + \frac{1}{2}(\eta_{\max} - \eta_{\min})\left(1 + \cos\left(\frac{t - T_{\text{warmup}}}{T_{\max}} \pi\right)\right)
+\]
+
+\section{Key Takeaways}
+
+\begin{itemize}
+    \item \textbf{Momentum} accelerates convergence
+    \item \textbf{Adam} adapts learning rates per parameter
+    \item \textbf{AdamW} is the standard for LLM training
+    \item \textbf{Learning rate schedules} are crucial for good performance
+\end{itemize}
+
+\begin{connection}
+These optimizers make training billion-parameter models feasible! Without them, modern LLMs wouldn't exist.
+\end{connection}

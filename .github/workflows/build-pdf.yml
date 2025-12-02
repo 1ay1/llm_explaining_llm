@@ -6,7 +6,7 @@ on:
       - main
       - master
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
       - main
@@ -33,9 +33,6 @@ jobs:
           latexmk_use_xelatex: false
           latexmk_shell_escape: true
           args: -pdf -interaction=nonstopmode -halt-on-error
-          extra_system_packages: |
-            texlive-fonts-extra
-            texlive-science
 
       - name: Rename PDF with version
         run: |
